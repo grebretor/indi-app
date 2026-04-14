@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meine Indis - RIAS Kammerchor</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f5f3ef;--sur:#fff;--sur2:#f0ede8;--sur3:#e8e4dd;
+  --brd:#d0cbc2;--brdl:#b8b2a8;
+  --gld:#6b5018;--gldd:rgba(107,80,24,.1);
+  --txt:#1a1714;--txm:#4a4540;--txd:#7a746c;
+  --grn:#1e7a48;--grnd:rgba(30,122,72,.1);
+  --red:#b83030;--redd:rgba(184,48,48,.1);
+  --amb:#8a5800;--ambd:rgba(138,88,0,.1);
+  --blu:#1e5a9a;--blud:rgba(30,90,154,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:15px;min-height:100vh;}
+
+header{background:var(--gld);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;}
+header h1{font-size:18px;font-weight:400;}
+.sub{font-size:11px;opacity:.75;margin-top:2px;}
+
+main{padding:20px;max-width:680px;margin:0 auto;}
+
+/* Auswahl */
+.select-box{background:var(--sur);border:1px solid var(--brd);border-radius:6px;padding:28px 24px;margin-top:24px;text-align:center;}
+.select-box h2{font-size:18px;font-weight:400;color:var(--gld);margin-bottom:6px;}
+.select-box p{font-size:12px;color:var(--txd);margin-bottom:20px;}
+select{background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:11px 14px;border-radius:3px;width:100%;max-width:340px;outline:none;display:block;margin:0 auto 16px;}
+select:focus{border-color:var(--gld);}
+.btn{font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:12px 28px;border:1px solid var(--gld);color:var(--gld);background:var(--gldd);cursor:pointer;border-radius:3px;display:inline-block;}
+.btn:hover{background:rgba(107,80,24,.18);}
+.btn-sm{font-size:10px;padding:7px 14px;border-color:var(--brdl);color:var(--txm);background:none;margin-top:0;}
+
+/* Profil */
+#profil{display:none;}
+.profil-header{display:flex;justify-content:space-between;align-items:flex-start;margin:24px 0 20px;flex-wrap:wrap;gap:12px;}
+.profil-name{font-size:26px;font-weight:300;color:var(--gld);}
+.profil-stimme{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--txd);margin-top:3px;}
+
+.karten{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.karte{background:var(--sur);border:1px solid var(--brd);padding:14px 16px;border-radius:4px;text-align:center;}
+.karte-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--txd);margin-bottom:6px;}
+.karte-wert{font-size:28px;font-weight:300;}
+.karte-wert.gld{color:var(--gld);}
+.karte-wert.grn{color:var(--grn);}
+.karte-wert.amb{color:var(--amb);}
+.karte-wert.red{color:var(--red);}
+
+.section{background:var(--sur);border:1px solid var(--brd);border-radius:4px;margin-bottom:16px;overflow:hidden;}
+.section-title{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txd);padding:12px 16px;background:var(--sur2);border-bottom:1px solid var(--brd);}
+
+/* Jahresabschluss-Karten */
+.jab-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:none;}
+.jab-item{padding:14px 16px;border-bottom:1px solid var(--brd);}
+.jab-item:nth-child(odd){border-right:1px solid var(--brd);}
+.jab-item:last-child,.jab-item:nth-last-child(2):nth-child(odd){border-bottom:none;}
+.jab-label{font-size:11px;color:var(--txd);margin-bottom:4px;}
+.jab-wert{font-size:18px;font-weight:400;}
+.badge{display:inline-flex;align-items:center;font-size:11px;padding:3px 9px;border:1px solid;border-radius:3px;font-weight:500;}
+.bp{color:var(--amb);border-color:var(--amb);background:var(--ambd);}
+.bg2{color:var(--grn);border-color:var(--grn);background:var(--grnd);}
+.br2{color:var(--red);border-color:var(--red);background:var(--redd);}
+.bt{color:var(--txm);border-color:var(--brdl);background:var(--sur2);}
+
+/* Antraege-Liste */
+.ant-item{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--brd);gap:10px;flex-wrap:wrap;}
+.ant-item:last-child{border-bottom:none;}
+.ant-datum{font-size:15px;font-weight:500;min-width:90px;}
+.ant-umfang{font-size:11px;color:var(--txd);}
+.ant-bem{font-size:11px;color:var(--txm);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* Kalender */
+.jah-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 16px 16px;}
+.mc2{background:var(--sur2);border:1px solid var(--brd);padding:10px;border-radius:3px;}
+.mc2t{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--txm);margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--brd);}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;}
+.ch{font-size:7px;text-align:center;color:var(--txd);padding:1px 0 2px;}
+.cd{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--txm);border-radius:2px;}
+.cd.today{font-weight:700;outline:2px solid var(--gld);outline-offset:-1px;}
+.cd.sperr{background:var(--redd);color:var(--red);}
+.cd.ib{background:var(--ambd);color:var(--amb);font-weight:700;}
+.cd.ig{background:var(--grnd);color:var(--grn);font-weight:700;}
+.cd.in2{background:var(--sur3);color:var(--txd);text-decoration:line-through;}
+.cd.ia{color:var(--red);opacity:.4;}
+
+.legende{display:flex;gap:12px;flex-wrap:wrap;padding:0 16px 14px;font-size:10px;color:var(--txm);}
+.leg{display:flex;align-items:center;gap:4px;}
+.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+.es{text-align:center;padding:28px;color:var(--txd);font-size:12px;}
+
+@media(max-width:500px){
+  .karten{grid-template-columns:1fr 1fr;}
+  .jah-grid{grid-template-columns:repeat(2,1fr);}
+  .jab-grid{grid-template-columns:1fr;}
+  .jab-item:nth-child(odd){border-right:none;}
+  .jab-item{border-bottom:1px solid var(--brd);}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Meine Indis</h1>
+    <div class="sub">RIAS Kammerchor Berlin</div>
+  </div>
+  <span id="yr-label" style="font-size:22px;font-weight:300;opacity:.8"></span>
+</header>
+
+<main>
+
+<div id="auswahl">
+  <div class="select-box">
+    <h2>Willkommen</h2>
+    <p>Bitte deinen Namen auswaehlen um deine Indi-Uebersicht zu sehen.</p>
+    <select id="m-sel">
+      <option value="">-- Name auswaehlen --</option>
+    </select>
+    <button class="btn" onclick="zeigeProfil()">Anzeigen</button>
+  </div>
+</div>
+
+<div id="profil">
+  <div class="profil-header">
+    <div>
+      <div class="profil-name" id="p-name"></div>
+      <div class="profil-stimme" id="p-stimme"></div>
+    </div>
+    <button class="btn btn-sm" onclick="zurueck()">Anderes Mitglied</button>
+  </div>
+
+  <!-- Kontingent-Karten -->
+  <div class="karten" id="p-karten"></div>
+
+  <!-- Terminabfrage -->
+  <div class="section">
+    <div class="section-title">Termin abfragen</div>
+    <div style="padding:14px 16px">
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Datum</div>
+          <input type="date" id="check-dat" style="background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;width:100%;outline:none">
+        </div>
+        <div style="flex:1;min-width:130px">
+          <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Umfang</div>
+          <select id="check-umf" style="background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;width:100%;outline:none">
+            <option value="ganz">Ganzer Tag</option>
+            <option value="erste">Erster Dienst</option>
+            <option value="zweite">Zweiter Dienst</option>
+          </select>
+        </div>
+        <button class="btn" onclick="checkTermin()" style="white-space:nowrap">Pruefen</button>
+      </div>
+      <div id="check-result" style="margin-top:14px;display:none"></div>
+    </div>
+  </div>
+
+  <!-- Jahresabschluss -->
+  <div class="section">
+    <div class="section-title">Jahresuebersicht <span id="p-jab-yr"></span></div>
+    <div class="jab-grid" id="p-jab"></div>
+  </div>
+
+  <!-- Naechste Indis -->
+  <div class="section">
+    <div class="section-title">Naechste Indis (ab heute)</div>
+    <div id="p-next"></div>
+  </div>
+
+  <!-- Alle Indis des Jahres -->
+  <div class="section">
+    <div class="section-title">Alle Indis <span id="p-ant-yr"></span></div>
+    <div id="p-ant"></div>
+  </div>
+
+  <!-- Jahreskalender -->
+  <div class="section">
+    <div class="section-title">Jahreskalender <span id="p-kal-yr"></span></div>
+    <div class="legende">
+      <div class="leg"><div class="leg-dot" style="background:var(--ambd);border:1px solid var(--amb)"></div>Beantragt</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--grnd);border:1px solid var(--grn)"></div>Genehmigt</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--sur3);border:1px solid var(--brdl)"></div>Genommen</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--redd);border:1px solid var(--red)"></div>Gesperrt</div>
+    </div>
+    <div class="jah-grid" id="p-kal"></div>
+  </div>
+
+</div>
+
+</main>
+
+<script>
+// =====================================================================
+// KONFIGURATION - dieselben Werte wie in index.html eintragen
+// =====================================================================
+var SUPABASE_URL  = 'https://lqfoybhgtlyvnbtuwggi.supabase.co';        // z.B. https://xyz.supabase.co
+var SUPABASE_KEY  = 'sb_publishable_MJUP_gLZccCY-UUlF1p7oQ_JB1hta_g';  // aus Supabase Projekteinstellungen
+// =====================================================================
+
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+var D  = {m:[],a:[],s:[],g:[],yr:new Date().getFullYear()};
+document.getElementById('yr-label').textContent = D.yr;
+
+// === LADEN ===
+async function laden() {
+  try {
+    var [rm,ra,rs,rg] = await Promise.all([
+      sb.from('mitglieder').select('*').order('nachname'),
+      sb.from('antraege').select('*').order('datum',{ascending:false}),
+      sb.from('sperrdaten').select('*').order('datum'),
+      sb.from('gutschriften').select('*').order('datum')
+    ]);
+    D.m=rm.data||[]; D.a=ra.data||[]; D.s=rs.data||[]; D.g=rg.data||[];
+    D.a.forEach(function(x){x.mid=x.mitglied_id||'';x.ba=x.beantragt_am||'';x.anzahl=x.anzahl||null;});
+    D.g.forEach(function(x){x.mid=x.mitglied_id||'';});
+    fillSel();
+    // Letztes Mitglied aus sessionStorage wiederherstellen
+    var last = sessionStorage.getItem('mid');
+    if (last && D.m.find(function(m){return m.id===last;})) {
+      document.getElementById('m-sel').value = last;
+      zeigeProfil();
+    }
+  } catch(e) {
+    document.querySelector('.select-box p').textContent = 'Fehler beim Laden: '+e.message;
+  }
+}
+
+// === HILFS ===
+function td(){ return new Date().toISOString().slice(0,10); }
+function fd(s){
+  if(!s) return '-';
+  var p=String(s).slice(0,10).split('-');
+  return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:s;
+}
+function fNum(n){
+  var s=parseFloat(n);
+  if(isNaN(s)) return n;
+  return s%1===0?String(s):String(s).replace('.',',');
+}
+function wt(a){ return a.umfang==='sammlung'?(parseFloat(a.anzahl)||2):(a.umfang==='erste'||a.umfang==='zweite')?0.5:1; }
+function ko(m){
+  var k=m.kontingent===null||m.kontingent===undefined||m.kontingent===''?3:parseFloat(m.kontingent);
+  return k+D.g.filter(function(g){return g.mid===m.id;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
+}
+function cnt(mid){
+  var m=D.m.find(function(x){return x.id===mid;}),k=m?ko(m):3;
+  var b=0,g=0,gn=0;
+  D.a.filter(function(a){return a.mid===mid;}).forEach(function(a){
+    var w=wt(a);
+    if(a.status==='beantragt') b+=w;
+    else if(a.status==='genehmigt') g+=w;
+    else if(a.status==='genommen') gn+=w;
+  });
+  return {b:b,g:g,gn:gn,tot:b+g+gn,frei:Math.max(0,k-b-g-gn),k:k};
+}
+function vn(stimme){ return {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'}[stimme]||stimme; }
+function umfangLabel(a){
+  if(a.umfang==='sammlung') return 'Sammelindi x'+fNum(a.anzahl||2);
+  return {ganz:'Ganzer Tag',erste:'1. Dienst',zweite:'2. Dienst'}[a.umfang]||'Ganzer Tag';
+}
+
+// === AUSWAHL ===
+function fillSel(){
+  var sel=document.getElementById('m-sel');
+  var vo=['S','A','T','B'];
+  D.m.slice().sort(function(a,b){
+    var vs=vo.indexOf(a.stimme)-vo.indexOf(b.stimme);
+    return vs!==0?vs:a.nachname.localeCompare(b.nachname);
+  }).forEach(function(m){
+    var o=document.createElement('option');
+    o.value=m.id;
+    o.textContent=m.nachname+', '+m.vorname+' ('+vn(m.stimme)+')';
+    sel.appendChild(o);
+  });
+}
+
+function zeigeProfil(){
+  var mid=document.getElementById('m-sel').value;
+  if(!mid) return;
+  var m=D.m.find(function(x){return x.id===mid;});
+  if(!m) return;
+  sessionStorage.setItem('mid',mid);
+  document.getElementById('auswahl').style.display='none';
+  document.getElementById('profil').style.display='block';
+  renderProfil(m);
+}
+
+function zurueck(){
+  sessionStorage.removeItem('mid');
+  document.getElementById('profil').style.display='none';
+  document.getElementById('auswahl').style.display='block';
+}
+
+// === PROFIL RENDERN ===
+function renderProfil(m){
+  var mid=m.id, t=td(), yr=D.yr;
+  document.getElementById('p-name').textContent=m.vorname+' '+m.nachname;
+  document.getElementById('p-stimme').textContent=vn(m.stimme);
+
+  var c=cnt(mid);
+
+  // Kontingent-Karten
+  var vjEnd=(yr-1)+'-12-31';
+  var gnVj=D.a.filter(function(a){return a.mid===mid&&a.status==='genommen'&&a.datum<=vjEnd;}).reduce(function(s,a){return s+wt(a);},0);
+  var gutVj=D.g.filter(function(g){return g.mid===mid&&g.datum<=vjEnd;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
+  var standVj=Math.max(0,(parseFloat(m.kontingent)||3)+gutVj-gnVj);
+  var gnJahr=D.a.filter(function(a){return a.mid===mid&&a.status==='genommen'&&a.datum>=(yr+'-01-01')&&a.datum<=(yr+'-12-31');}).reduce(function(s,a){return s+wt(a);},0);
+
+  document.getElementById('p-karten').innerHTML=
+    karte('Stand 31.12.'+(yr-1),fNum(standVj),'gld')+
+    karte('Frei '+yr,fNum(c.frei),c.frei>0?'grn':'red')+
+    karte('Genommen '+yr,fNum(gnJahr),'');
+
+  // Jahresabschluss
+  document.getElementById('p-jab-yr').textContent = yr;
+  document.getElementById('p-ant-yr').textContent = yr;
+  document.getElementById('p-kal-yr').textContent = yr;
+  var PFLICHT=3;
+  var vjStart=(yr-1)+'-01-01', vjEnde=yr+'-03-31';
+  var ljStart=yr+'-01-01',     ljEnde=yr+'-12-31';
+  var vjAbgelaufen=t>vjEnde;
+  var vjGn=D.a.filter(function(a){return a.mid===mid&&a.status==='genommen'&&a.datum>=vjStart&&a.datum<=vjEnde;}).reduce(function(s,a){return s+wt(a);},0);
+  var ljGn=D.a.filter(function(a){return a.mid===mid&&a.status==='genommen'&&a.datum>=ljStart&&a.datum<=ljEnde;}).reduce(function(s,a){return s+wt(a);},0);
+  var vjRest=Math.max(0,PFLICHT-vjGn);
+  var ljRest=Math.max(0,PFLICHT-ljGn);
+
+  var vjRestHtml=vjRest===0?
+    '<span class="badge bg2">&#10003; Erfuellt</span>':
+    vjAbgelaufen?'<span class="badge br2">'+fNum(vjRest)+' nicht genommen</span>':
+    '<span class="badge bp">'+fNum(vjRest)+' noch offen (bis 31.03.'+yr+')</span>';
+  var ljRestHtml=ljRest===0?
+    '<span class="badge bg2">&#10003; Erfuellt</span>':
+    '<span class="badge bp">'+fNum(ljRest)+' noch offen</span>';
+
+  document.getElementById('p-jab').innerHTML=
+    jabItem((yr-1)+' genommen',fNum(vjGn)+' / '+PFLICHT)+
+    jabItem((yr-1)+' Pflicht',vjRestHtml)+
+    jabItem(yr+' genommen',fNum(ljGn)+' / '+PFLICHT)+
+    jabItem(yr+' Pflicht',ljRestHtml);
+
+  // Naechste Indis
+  var next=D.a.filter(function(a){
+    return a.mid===mid&&a.datum>=t&&(a.status==='beantragt'||a.status==='genehmigt');
+  }).sort(function(a,b){return a.datum<b.datum?-1:1;});
+  var nextEl=document.getElementById('p-next');
+  if(!next.length){
+    nextEl.innerHTML='<div class="es">Keine bevorstehenden Indis</div>';
+  } else {
+    nextEl.innerHTML=next.map(function(a){
+      var bl={beantragt:'<span class="badge bp">Beantragt</span>',genehmigt:'<span class="badge bg2">Genehmigt</span>'};
+      return '<div class="ant-item">'+
+        '<div><div class="ant-datum">'+fd(a.datum)+'</div>'+
+        '<div class="ant-umfang">'+umfangLabel(a)+'</div></div>'+
+        (a.bemerkung?'<div class="ant-bem">'+a.bemerkung+'</div>':'<div class="ant-bem"></div>')+
+        (bl[a.status]||'')+'</div>';
+    }).join('');
+  }
+
+  // Alle Indis des Jahres
+  var alle=D.a.filter(function(a){
+    return a.mid===mid&&a.datum>=ljStart&&a.datum<=ljEnde;
+  }).sort(function(a,b){return a.datum<b.datum?1:-1;});
+  var antEl=document.getElementById('p-ant');
+  if(!alle.length){
+    antEl.innerHTML='<div class="es">Keine Indis in '+yr+'</div>';
+  } else {
+    var bl2={
+      beantragt:'<span class="badge bp">Beantragt</span>',
+      genehmigt:'<span class="badge bg2">Genehmigt</span>',
+      genommen:'<span class="badge bt">Genommen</span>',
+      abgelehnt:'<span class="badge br2">Abgelehnt</span>'
+    };
+    antEl.innerHTML=alle.map(function(a){
+      return '<div class="ant-item">'+
+        '<div><div class="ant-datum">'+fd(a.datum)+'</div>'+
+        '<div class="ant-umfang">'+umfangLabel(a)+'</div></div>'+
+        (a.bemerkung?'<div class="ant-bem">'+a.bemerkung+'</div>':'<div class="ant-bem"></div>')+
+        (bl2[a.status]||a.status)+'</div>';
+    }).join('');
+  }
+
+  // Kalender
+  renderKalender(mid,yr,t);
+}
+
+function renderKalender(mid,yr,t){
+  var sm={},am={};
+  D.s.forEach(function(s){sm[s.datum]=s;});
+  D.a.filter(function(a){return a.mid===mid;}).forEach(function(a){am[a.datum]=a;});
+  var mn=['Jan','Feb','Mrz','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  var wd=['Mo','Di','Mi','Do','Fr','Sa','So'];
+  document.getElementById('p-kal').innerHTML=mn.map(function(mn2,mi){
+    var fd3=new Date(yr,mi,1),dim=new Date(yr,mi+1,0).getDate();
+    var sw=fd3.getDay();sw=sw===0?6:sw-1;
+    var hd=wd.map(function(d){return '<div class="ch">'+d+'</div>';}).join('');
+    var bl=new Array(sw+1).join('<div class="cd"></div>');
+    var ds=Array.from({length:dim},function(_,i){
+      var d=i+1,ds2=yr+'-'+String(mi+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      var cl='cd';if(ds2===t)cl+=' today';
+      var a=am[ds2],s=sm[ds2];
+      if(a){var sc2={beantragt:'ib',genehmigt:'ig',genommen:'in2',abgelehnt:'ia'};cl+=' '+(sc2[a.status]||'');}
+      else if(s) cl+=' sperr';
+      return '<div class="'+cl+'" title="'+ds2+'">'+d+'</div>';
+    }).join('');
+    return '<div class="mc2"><div class="mc2t">'+mn2+'</div><div class="cg">'+hd+bl+ds+'</div></div>';
+  }).join('');
+}
+
+function karte(l,v,c){
+  return '<div class="karte"><div class="karte-label">'+l+'</div><div class="karte-wert '+c+'">'+v+'</div></div>';
+}
+function jabItem(l,v){
+  return '<div class="jab-item"><div class="jab-label">'+l+'</div><div class="jab-wert">'+v+'</div></div>';
+}
+
+// Enter-Taste auf Select
+document.getElementById('m-sel').addEventListener('change', function(){
+  if(this.value) zeigeProfil();
+});
+
+function checkTermin() {
+  var dat = document.getElementById('check-dat').value;
+  var umf = document.getElementById('check-umf').value;
+  var res = document.getElementById('check-result');
+  if (!dat) { res.style.display='none'; return; }
+
+  var mid = sessionStorage.getItem('mid');
+  var mSel = document.getElementById('m-sel').value;
+  var aktivMid = mid || mSel;
+
+  var meldungen = [];
+  var ok = true;
+
+  // 1. Sperrtag prüfen
+  var sp = D.s.find(function(s){
+    return s.datum===dat && (s.umfang==='ganz'||!s.umfang||umf==='ganz'||s.umfang===umf);
+  });
+  if (sp) {
+    ok = false;
+    var ulbl = {ganz:'Ganzer Tag',erste:'1. Dienst',zweite:'2. Dienst'};
+    meldungen.push('&#128721; <b>Gesperrter Termin:</b> '+sp.typ+(sp.beschreibung?' &ndash; '+sp.beschreibung:'')
+      +(sp.umfang&&sp.umfang!=='ganz'?' ('+ulbl[sp.umfang]+')':''));
+  }
+
+  // 2. Eigener Antrag prüfen
+  if (aktivMid) {
+    var eigener = D.a.find(function(a){
+      return a.mid===aktivMid && a.datum===dat && a.status!=='abgelehnt' &&
+        (umf==='ganz'||a.umfang==='ganz'||a.umfang===umf);
+    });
+    if (eigener) {
+      ok = false;
+      var stLabels = {beantragt:'beantragt',genehmigt:'genehmigt',genommen:'bereits genommen'};
+      meldungen.push('&#128100; <b>Dein Indi:</b> An diesem Tag hast du bereits einen Antrag ('+
+        (stLabels[eigener.status]||eigener.status)+').');
+    }
+  }
+
+  // 3. Stimmgruppen-Kollision prüfen
+  if (aktivMid) {
+    var ich = D.m.find(function(m){return m.id===aktivMid;});
+    if (ich) {
+      var kollegen = D.a.filter(function(a){
+        if (a.mid===aktivMid||a.status==='abgelehnt') return false;
+        var am = D.m.find(function(m){return m.id===a.mid;});
+        if (!am||am.stimme!==ich.stimme||a.datum!==dat) return false;
+        return umf==='ganz'||a.umfang==='ganz'||a.umfang===umf;
+      });
+      if (kollegen.length) {
+        var vn2 = {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'};
+        var namen = kollegen.map(function(a){
+          var km=D.m.find(function(m){return m.id===a.mid;});
+          return km?km.vorname+' '+km.nachname:'?';
+        }).join(', ');
+        meldungen.push('&#9888;&#65039; <b>'+vn2[ich.stimme]+' bereits belegt:</b> '+namen);
+      }
+    }
+  }
+
+  res.style.display = 'block';
+  if (ok) {
+    res.innerHTML = '<div style="background:var(--grnd);border:1px solid var(--grn);border-radius:4px;padding:12px 16px;color:var(--grn);font-size:13px">'
+      +'&#10003; <b>Termin frei</b> &ndash; Kein Sperrtag, keine Kollision gefunden.</div>';
+  } else {
+    res.innerHTML = meldungen.map(function(m){
+      return '<div style="background:var(--redd);border:1px solid var(--red);border-radius:4px;padding:12px 16px;color:var(--red);font-size:13px;margin-bottom:8px">'+m+'</div>';
+    }).join('');
+  }
+}
+
+laden();
+</script>
+</body>
+</html>
