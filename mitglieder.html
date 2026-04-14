@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v4 -->
+<!-- v5 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -144,11 +144,11 @@ select:focus{border-color:var(--gld);}
     <div style="padding:16px">
       <table style="width:100%;border-collapse:collapse">
         <tr>
-          <td style="padding:0 8px 12px 0;width:50%">
+          <td style="padding:0 8px 12px 0;width:50%;vertical-align:top">
             <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Datum</div>
             <input type="date" id="check-dat" style="display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;box-sizing:border-box;outline:none">
           </td>
-          <td style="padding:0 0 12px 0;width:50%">
+          <td style="padding:0 0 12px 0;width:50%;vertical-align:top">
             <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Umfang</div>
             <select id="check-umf" style="display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;box-sizing:border-box;outline:none">
               <option value="ganz">Ganzer Tag</option>
@@ -501,7 +501,10 @@ function checkTermin() {
         var kaUmf = ka.umfang || 'ganz';
         if (umf !== 'ganz' && kaUmf !== 'ganz' && kaUmf !== umf && kaUmf !== 'sammlung') continue;
         var stL2 = {beantragt:'beantragt', genehmigt:'genehmigt', genommen:'genommen'};
-        kollNamen.push(km.vorname + ' ' + km.nachname + ' (' + (stL2[ka.status]||ka.status) + ')');
+        var ulbl2 = {ganz:'Ganzer Tag', erste:'1. Dienst', zweite:'2. Dienst', sammlung:'Sammelindi'};
+        var kaUmfLabel = ulbl2[kaUmf] || kaUmf;
+        kollNamen.push(km.vorname + ' ' + km.nachname +
+          ' (' + (stL2[ka.status]||ka.status) + ', ' + kaUmfLabel + ')');
       }
       if (kollNamen.length > 0) {
         var vn2 = {S:'Sopran', A:'Alt', T:'Tenor', B:'Bass'};
