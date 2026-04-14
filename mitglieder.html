@@ -142,19 +142,19 @@ select:focus{border-color:var(--gld);}
     <div class="section-title">Termin abfragen</div>
     <div style="padding:14px 16px">
       <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-        <div style="flex:1;min-width:160px">
+        <div style="flex:1;min-width:150px">
           <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Datum</div>
-          <input type="date" id="check-dat" style="background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;width:100%;outline:none">
+          <input type="date" id="check-dat" style="background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;width:100%;min-height:44px;outline:none;display:block">
         </div>
-        <div style="flex:1;min-width:130px">
+        <div style="flex:1;min-width:150px">
           <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Umfang</div>
-          <select id="check-umf" style="background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;width:100%;outline:none">
+          <select id="check-umf" style="background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;width:100%;min-height:44px;outline:none;display:block">
             <option value="ganz">Ganzer Tag</option>
             <option value="erste">Erster Dienst</option>
             <option value="zweite">Zweiter Dienst</option>
           </select>
         </div>
-        <button class="btn" onclick="checkTermin()" style="white-space:nowrap">Pruefen</button>
+        <button class="btn" onclick="checkTermin()" style="white-space:nowrap;align-self:flex-end">Pruefen</button>
       </div>
       <div id="check-result" style="margin-top:14px;display:none"></div>
     </div>
@@ -204,6 +204,7 @@ var SUPABASE_KEY  = 'sb_publishable_MJUP_gLZccCY-UUlF1p7oQ_JB1hta_g';  // aus Su
 
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var D  = {m:[],a:[],s:[],g:[],yr:new Date().getFullYear()};
+var _aktivMid = '';
 document.getElementById('yr-label').textContent = D.yr;
 
 // === LADEN ===
@@ -285,6 +286,7 @@ function zeigeProfil(){
   var m=D.m.find(function(x){return x.id===mid;});
   if(!m) return;
   sessionStorage.setItem('mid',mid);
+  _aktivMid = mid;
   document.getElementById('auswahl').style.display='none';
   document.getElementById('profil').style.display='block';
   renderProfil(m);
@@ -429,9 +431,10 @@ function checkTermin() {
   var res = document.getElementById('check-result');
   if (!dat) { res.style.display='none'; return; }
 
-  var mid = sessionStorage.getItem('mid');
-  var mSel = document.getElementById('m-sel').value;
-  var aktivMid = mid || mSel;
+  // aktivMid: aus sessionStorage, Select oder globalem _aktivMid
+  var aktivMid = sessionStorage.getItem('mid') ||
+                 document.getElementById('m-sel').value ||
+                 (typeof _aktivMid !== 'undefined' ? _aktivMid : '');
 
   var meldungen = [];
   var ok = true;
@@ -462,23 +465,25 @@ function checkTermin() {
   }
 
   // 3. Stimmgruppen-Kollision prüfen
-  if (aktivMid) {
-    var ich = D.m.find(function(m){return m.id===aktivMid;});
-    if (ich) {
-      var kollegen = D.a.filter(function(a){
-        if (a.mid===aktivMid||a.status==='abgelehnt') return false;
-        var am = D.m.find(function(m){return m.id===a.mid;});
-        if (!am||am.stimme!==ich.stimme||a.datum!==dat) return false;
-        return umf==='ganz'||a.umfang==='ganz'||a.umfang===umf;
-      });
-      if (kollegen.length) {
-        var vn2 = {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'};
-        var namen = kollegen.map(function(a){
-          var km=D.m.find(function(m){return m.id===a.mid;});
-          return km?km.vorname+' '+km.nachname:'?';
-        }).join(', ');
-        meldungen.push('&#9888;&#65039; <b>'+vn2[ich.stimme]+' bereits belegt:</b> '+namen);
-      }
+  var ich = aktivMid ? D.m.find(function(m){return m.id===aktivMid;}) : null;
+  if (ich) {
+    var kollegen = D.a.filter(function(a){
+      if (a.mid===aktivMid) return false;
+      if (a.status==='abgelehnt') return false;
+      var am = D.m.find(function(m){return m.id===a.mid;});
+      if (!am) return false;
+      if (am.stimme!==ich.stimme) return false;
+      if (a.datum!==dat) return false;
+      return umf==='ganz'||a.umfang==='ganz'||a.umfang===umf||a.umfang==='sammlung';
+    });
+    if (kollegen.length) {
+      var vn2 = {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'};
+      var namen = kollegen.map(function(a){
+        var km=D.m.find(function(m){return m.id===a.mid;});
+        var stl={beantragt:'beantragt',genehmigt:'genehmigt',genommen:'genommen'};
+        return (km?km.vorname+' '+km.nachname:'?')+' ('+( stl[a.status]||a.status)+')';
+      }).join(', ');
+      meldungen.push('&#9888;&#65039; <b>'+vn2[ich.stimme]+' bereits belegt:</b> '+namen);
     }
   }
 
