@@ -157,7 +157,7 @@ textarea{min-height:80px;resize:vertical;}
   <button class="nb" id="nb-ant"  onclick="go('ant')">Anträge</button>
   <button class="nb" id="nb-mit"  onclick="go('mit')">Mitglieder</button>
   <button class="nb" id="nb-spe"  onclick="go('spe')">Sperrtage</button>
-  <button class="nb" id="nb-jah"  onclick="go('jah')">Jahresansicht</button>
+  <button class="nb" id="nb-jah"  onclick="go('jah')">Kommende Indis</button>
   <div style="flex:1"></div>
   <button class="nb" id="nb-jab" onclick="go('jab')">Jahresabschluss</button>
   <button class="nb" onclick="csvEx()" style="color:var(--gld)">CSV</button>
@@ -176,7 +176,7 @@ textarea{min-height:80px;resize:vertical;}
     <button class="mob-nb" id="mnb-ant"  onclick="go('ant');toggleMenu()">Anträge</button>
     <button class="mob-nb" id="mnb-mit"  onclick="go('mit');toggleMenu()">Mitglieder</button>
     <button class="mob-nb" id="mnb-spe"  onclick="go('spe');toggleMenu()">Sperrtage</button>
-    <button class="mob-nb" id="mnb-jah"  onclick="go('jah');toggleMenu()">Jahresansicht</button>
+    <button class="mob-nb" id="mnb-jah"  onclick="go('jah');toggleMenu()">Kommende Indis</button>
     <button class="mob-nb" id="mnb-jab"  onclick="go('jab');toggleMenu()">Jahresabschluss</button>
     <div style="border-top:1px solid var(--brd);display:flex;gap:0">
       <button class="mob-nb" onclick="csvEx();toggleMenu()" style="color:var(--gld)">CSV</button>
@@ -234,15 +234,12 @@ textarea{min-height:80px;resize:vertical;}
 </div>
 
 <div class="panel" id="p-jah">
-  <div class="ph"><h2>Jahresansicht</h2></div>
-  <select id="jah-sel" onchange="rJah()" class="fs" style="margin-bottom:20px;min-width:220px">
-    <option value="">-- Mitglied auswaehlen --</option>
-  </select>
-  <div id="jah-sum" style="display:none">
-    <div class="js" id="jah-stats"></div>
-    <div class="jg" id="jah-grid"></div>
-  </div>
-  <div class="es" id="e-jah">Bitte Mitglied auswählen</div>
+  <div class="ph"><h2>Kommende Indis</h2></div>
+  <div class="tw"><table>
+    <thead><tr><th>Mitglied</th><th>Stimme</th><th>Datum</th><th>Umfang</th><th>Status</th><th>Bemerkung</th></tr></thead>
+    <tbody id="t-kom"></tbody>
+  </table></div>
+  <div class="es" id="e-kom" style="display:none">Keine kommenden Indis</div>
 </div>
 
 <div class="panel" id="p-jab">
@@ -338,6 +335,30 @@ textarea{min-height:80px;resize:vertical;}
   <div class="mf">
     <button class="btn btn-g" onclick="cm('m-gut')">Abbrechen</button>
     <button class="btn btn-p" onclick="subGut()">Eintragen</button>
+  </div>
+</div></div>
+
+<!-- Modal: Antrag editieren -->
+<div class="mo" id="m-edit"><div class="md">
+  <h2>Antrag bearbeiten</h2>
+  <input type="hidden" id="e-id">
+  <div class="gr2">
+    <div class="fg"><label>Datum</label><input type="date" id="e-dat"></div>
+    <div class="fg"><label>Umfang</label><select id="e-umf" onchange="toggleEditAnzahl()">
+      <option value="ganz">Ganzer Tag</option>
+      <option value="erste">Erster Dienst</option>
+      <option value="zweite">Zweiter Dienst</option>
+      <option value="sammlung">Sammelindi</option>
+    </select></div>
+  </div>
+  <div class="fg" id="e-anz-row" style="display:none">
+    <label>Anzahl (Sammelindi)</label>
+    <input type="number" id="e-anz" value="2" min="1" max="10" step="0.5">
+  </div>
+  <div class="fg"><label>Bemerkung</label><textarea id="e-bem" rows="2"></textarea></div>
+  <div class="mf">
+    <button class="btn btn-g" onclick="cm('m-edit')">Abbrechen</button>
+    <button class="btn btn-p" onclick="subEdit()">Speichern</button>
   </div>
 </div></div>
 
@@ -482,7 +503,7 @@ function cnt(mid) {
     else if(a.status==='genehmigt') g+=w;
     else if(a.status==='genommen') gn+=w;
   });
-  return {b:b,g:g,gn:gn,tot:b+g+gn,frei:Math.max(0,k-b-g-gn),k:k};
+  return {b:b,g:g,gn:gn,tot:b+g+gn,frei:k-b-g-gn,k:k};
 }
 function mById(id) { return D.m.find(function(x){return x.id===id;})||null; }
 function mNm(id)   { var m=mById(id); return m?m.vorname+' '+m.nachname:'-'; }
@@ -497,7 +518,7 @@ function go(id) {
   document.getElementById('p-'+id).classList.add('on');
   document.getElementById('nb-'+id).classList.add('on');
   var mnb=document.getElementById('mnb-'+id); if(mnb) mnb.classList.add('on');
-  var labels={dash:'Übersicht',ant:'Anträge',mit:'Mitglieder',spe:'Sperrtage',jah:'Jahresansicht',jab:'Jahresabschluss'};
+  var labels={dash:'Übersicht',ant:'Anträge',mit:'Mitglieder',spe:'Sperrtage',jah:'Kommende Indis',jab:'Jahresabschluss'};
   var mc=document.getElementById('mob-current'); if(mc) mc.textContent=labels[id]||id;
   render();
 }
@@ -508,7 +529,7 @@ function toggleMenu() {
 }
 
 // === RENDER ===
-function render() { rStats();rDash();rAnt();rMit();rSpe();rJah();rJab();fillSel();fillJah();fillJabYr(); }
+function render() { rStats();rDash();rAnt();rMit();rSpe();rKom();rJab();fillSel();fillJabYr(); }
 
 function rStats() {
   var yr = D.yr;
@@ -633,17 +654,21 @@ function rAnt() {
   tb.innerHTML=list.map(function(a){
     var act='';
     if (a.status==='beantragt')
-      act='<button class="ab ap" onclick="stSt(\''+a.id+'\',\'genehmigt\')">Genehmigen</button>'+
+      act='<button class="ab" onclick="openEdit(\''+a.id+'\')">&#9998;</button>'+
+          '<button class="ab ap" onclick="stSt(\''+a.id+'\',\'genehmigt\')">Genehmigen</button>'+
           '<button class="ab ar" onclick="stSt(\''+a.id+'\',\'abgelehnt\')">Ablehnen</button>'+
           '<button class="ab ad" onclick="delAnt(\''+a.id+'\')">Löschen</button>';
     else if (a.status==='genehmigt')
-      act='<button class="ab" onclick="stSt(\''+a.id+'\',\'genommen\')">Als genommen</button>'+
+      act='<button class="ab" onclick="openEdit(\''+a.id+'\')">&#9998;</button>'+
+          '<button class="ab" onclick="stSt(\''+a.id+'\',\'genommen\')">Als genommen</button>'+
           '<button class="ab ar" onclick="stSt(\''+a.id+'\',\'abgelehnt\')">Ablehnen</button>'+
           '<button class="ab ad" onclick="delAnt(\''+a.id+'\')">Löschen</button>';
     else if (a.status==='abgelehnt')
-      act='<button class="ab ap" onclick="stSt(\''+a.id+'\',\'beantragt\')">Zurücknehmen</button>'+
+      act='<button class="ab" onclick="openEdit(\''+a.id+'\')">&#9998;</button>'+
+          '<button class="ab ap" onclick="stSt(\''+a.id+'\',\'beantragt\')">Zurücknehmen</button>'+
           '<button class="ab ad" onclick="delAnt(\''+a.id+'\')">Löschen</button>';
-    else act='<button class="ab ad" onclick="delAnt(\''+a.id+'\')">Löschen</button>';
+    else act='<button class="ab" onclick="openEdit(\''+a.id+'\')">&#9998;</button>'+
+          '<button class="ab ad" onclick="delAnt(\''+a.id+'\')">Löschen</button>';
     return '<tr><td>'+mNm(a.mid)+'</td><td>'+fd(a.datum)+'</td>'+
       '<td style="font-size:11px;color:var(--txd)">'+umfangLabel(a)+'</td>'+
       '<td style="color:var(--txm)">'+fd(a.ba)+'</td>'+
@@ -712,49 +737,51 @@ function fillSel() {
   if (fm){var cv=fm.value;fm.innerHTML='<option value="">Alle Mitglieder</option>'+sl.map(function(m){return '<option value="'+m.id+'">'+m.nachname+', '+m.vorname+'</option>';}).join('');fm.value=cv;}
 }
 
-function fillJah() {
-  var el=document.getElementById('jah-sel');if(!el)return;
-  var cv=el.value;
-  el.innerHTML='<option value="">-- Mitglied auswaehlen --</option>'+
-    D.m.slice().sort(function(a,b){return a.nachname.localeCompare(b.nachname);}).map(function(m){
-      return '<option value="'+m.id+'">'+m.nachname+', '+m.vorname+' ('+m.stimme+')</option>';
-    }).join('');
-  if (cv) el.value=cv;
-}
-
-function rJah() {
-  var sel=document.getElementById('jah-sel').value;
-  var sum=document.getElementById('jah-sum'),em=document.getElementById('e-jah');
-  if (!sel){sum.style.display='none';em.style.display='block';return;}
-  var m=mById(sel);if(!m)return;
-  sum.style.display='block';em.style.display='none';
-  var c=cnt(sel);
-  document.getElementById('jah-stats').innerHTML=
-    jsc('Kontingent',c.k,'var(--txd)')+jsc('Frei',c.frei,'var(--gld)')+
-    jsc('Beantragt',c.b,'var(--amb)')+jsc('Genehmigt',c.g,'var(--grn)')+jsc('Genommen',c.gn,'var(--txd)');
-  var sm={},am={};
-  D.s.forEach(function(s){sm[s.datum]=s;});
-  D.a.filter(function(a){return a.mid===sel;}).forEach(function(a){am[a.datum]=a;});
-  var mn=['Jan','Feb','Mrz','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-  var wd=['Mo','Di','Mi','Do','Fr','Sa','So'];
-  var t=td(),yr=D.yr;
-  document.getElementById('jah-grid').innerHTML=mn.map(function(mn2,mi){
-    var fd3=new Date(yr,mi,1),dim=new Date(yr,mi+1,0).getDate();
-    var sw=fd3.getDay();sw=sw===0?6:sw-1;
-    var hd=wd.map(function(d){return '<div class="ch">'+d+'</div>';}).join('');
-    var bl=new Array(sw+1).join('<div class="cd"></div>');
-    var ds=Array.from({length:dim},function(_,i){
-      var d=i+1,ds2=yr+'-'+String(mi+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-      var cl='cd';if(ds2===t)cl+=' today';
-      var a=am[ds2],s=sm[ds2];
-      if(a){var sc2={beantragt:'ib',genehmigt:'ig',genommen:'in2',abgelehnt:'ia'};cl+=' '+(sc2[a.status]||'');}
-      else if(s) cl+=' sperr';
-      return '<div class="'+cl+'">'+d+'</div>';
-    }).join('');
-    return '<div class="mc2"><div class="mc2t">'+mn2+'</div><div class="cg">'+hd+bl+ds+'</div></div>';
+function rKom() {
+  var t = td();
+  var vo = ['S','A','T','B'];
+  var vn2 = {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'};
+  var ul = {ganz:'Ganzer Tag',erste:'1. Dienst',zweite:'2. Dienst'};
+  var bl = {
+    beantragt:'<span class="badge bp">Beantragt</span>',
+    genehmigt:'<span class="badge bg2">Genehmigt</span>',
+    genommen:'<span class="badge bt">Genommen</span>'
+  };
+  // Alle kommenden + heutigen Anträge die nicht abgelehnt/genommen sind
+  var list = D.a.filter(function(a){
+    return a.datum >= t && a.status !== 'abgelehnt' && a.status !== 'genommen';
+  }).sort(function(a,b){
+    var ma=mById(a.mid), mb=mById(b.mid);
+    var vs = vo.indexOf(ma?ma.stimme:'') - vo.indexOf(mb?mb.stimme:'');
+    if (vs!==0) return vs;
+    return a.datum < b.datum ? -1 : 1;
+  });
+  var tb = document.getElementById('t-kom');
+  var em = document.getElementById('e-kom');
+  if (!list.length) { tb.innerHTML=''; em.style.display='block'; return; }
+  em.style.display='none';
+  var lastStimme = '';
+  tb.innerHTML = list.map(function(a){
+    var m = mById(a.mid);
+    var stimme = m ? m.stimme : '';
+    var sep = '';
+    if (stimme !== lastStimme) {
+      lastStimme = stimme;
+      sep = '<tr style="background:var(--sur2)"><td colspan="6" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txd);padding:8px 12px">'+vn2[stimme]+'</td></tr>';
+    }
+    var umfLabel = a.umfang==='sammlung' ? 'Sammelindi x'+fNum(a.anzahl||2) : (ul[a.umfang]||'Ganzer Tag');
+    return sep + '<tr>'+
+      '<td>'+mNm(a.mid)+'</td>'+
+      '<td><span class="badge" style="font-size:10px;border-color:var(--brdl);color:var(--txm)">'+stimme+'</span></td>'+
+      '<td>'+fd(a.datum)+'</td>'+
+      '<td style="font-size:11px;color:var(--txd)">'+umfLabel+'</td>'+
+      '<td>'+(bl[a.status]||a.status)+'</td>'+
+      '<td style="font-size:11px;color:var(--txm);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.bemerkung||'-')+'</td>'+
+      '</tr>';
   }).join('');
 }
-function jsc(l,v,c){return '<div class="jsc"><div class="jsl">'+l+'</div><div class="jsv" style="color:'+c+'">'+fNum(v)+'</div></div>';}
+
+function jsc(l,v,c){var col=c||'var(--txd)';if(typeof v==='number'&&v<0) col='var(--red)';return '<div class="jsc"><div class="jsl">'+l+'</div><div class="jsv" style="color:'+col+'">'+fNum(v)+'</div></div>';}
 
 // === AKTIONEN ===
 async function logP(aktion, details) {
@@ -986,6 +1013,41 @@ document.addEventListener('click',function(e){
   }
 });
 
+function toggleEditAnzahl() {
+  var umf = document.getElementById('e-umf').value;
+  document.getElementById('e-anz-row').style.display = umf==='sammlung' ? 'block' : 'none';
+}
+
+function openEdit(id) {
+  var a = D.a.find(function(x){return x.id===id;});
+  if (!a) return;
+  document.getElementById('e-id').value  = id;
+  document.getElementById('e-dat').value = a.datum||'';
+  document.getElementById('e-umf').value = a.umfang||'ganz';
+  document.getElementById('e-anz').value = a.anzahl||2;
+  document.getElementById('e-anz-row').style.display = a.umfang==='sammlung'?'block':'none';
+  document.getElementById('e-bem').value = a.bemerkung||'';
+  om('m-edit');
+}
+
+async function subEdit() {
+  var id  = document.getElementById('e-id').value;
+  var dat = document.getElementById('e-dat').value;
+  var umf = document.getElementById('e-umf').value;
+  var anz = parseFloat(document.getElementById('e-anz').value)||2;
+  var bem = document.getElementById('e-bem').value.trim();
+  if (!dat) { toast('Datum benötigt','er'); return; }
+  var upd = {datum:dat, umfang:umf, bemerkung:bem};
+  if (umf==='sammlung') upd.anzahl=anz; else upd.anzahl=null;
+  var {error} = await sb.from('antraege').update(upd).eq('id',id);
+  if (error) { toast('Fehler: '+error.message,'er'); return; }
+  var a = D.a.find(function(x){return x.id===id;});
+  if (a) { a.datum=dat; a.umfang=umf; a.bemerkung=bem; a.anzahl=umf==='sammlung'?anz:null; }
+  var m = a?mById(a.mid):null;
+  logP('Antrag bearbeitet', (m?m.vorname+' '+m.nachname:'?')+': '+dat+' ('+umf+')');
+  render(); cm('m-edit'); toast('Gespeichert','ok');
+}
+
 function openGut(mid){
   fillSel();var e=document.getElementById('g-mid');if(e)e.value=mid;
   document.getElementById('g-anz').value=1;
@@ -1205,7 +1267,9 @@ function rKto(){
   var gutVj = D.g.filter(function(g){
     return g.mid===_kId && g.datum<=vjEnd;
   }).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
-  var standVj = Math.max(0, (parseFloat(mById(_kId).kontingent)||3) + gutVj - gnVj);
+  var mKto = mById(_kId);
+  var kVj = mKto ? (mKto.kontingent===null||mKto.kontingent===undefined||mKto.kontingent===''?3:parseFloat(mKto.kontingent)) : 3;
+  var standVj = kVj + gutVj - gnVj;
   // Genommen nur laufendes Jahr
   var yrStart = D.yr+'-01-01', yrEnd = D.yr+'-12-31';
   var gnJahr = D.a.filter(function(a){
