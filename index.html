@@ -235,8 +235,8 @@ textarea{min-height:80px;resize:vertical;}
 
 <div class="panel" id="p-jah">
   <div class="ph"><h2>Kommende Indis</h2></div>
-  <div class="tw"><table>
-    <thead><tr><th>Mitglied</th><th>Stimme</th><th>Datum</th><th>Umfang</th><th>Status</th><th>Bemerkung</th></tr></thead>
+  <div class="tw"><table style="table-layout:fixed">
+    <colgroup><col style="width:38px"><col><col style="width:90px"><col style="width:110px"></colgroup>
     <tbody id="t-kom"></tbody>
   </table></div>
   <div class="es" id="e-kom" style="display:none">Keine kommenden Indis</div>
@@ -741,44 +741,72 @@ function rKom() {
   var t = td();
   var vo = ['S','A','T','B'];
   var vn2 = {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'};
+  var vc = {S:'var(--blu)',A:'var(--grn)',T:'var(--gld)',B:'var(--red)'};
   var ul = {ganz:'Ganzer Tag',erste:'1. Dienst',zweite:'2. Dienst'};
+  var wt2 = ['So','Mo','Di','Mi','Do','Fr','Sa'];
   var bl = {
     beantragt:'<span class="badge bp">Beantragt</span>',
-    genehmigt:'<span class="badge bg2">Genehmigt</span>',
-    genommen:'<span class="badge bt">Genommen</span>'
+    genehmigt:'<span class="badge bg2">Genehmigt</span>'
   };
-  // Alle kommenden + heutigen Anträge die nicht abgelehnt/genommen sind
   var list = D.a.filter(function(a){
     return a.datum >= t && a.status !== 'abgelehnt' && a.status !== 'genommen';
-  }).sort(function(a,b){
-    var ma=mById(a.mid), mb=mById(b.mid);
-    var vs = vo.indexOf(ma?ma.stimme:'') - vo.indexOf(mb?mb.stimme:'');
-    if (vs!==0) return vs;
-    return a.datum < b.datum ? -1 : 1;
   });
   var tb = document.getElementById('t-kom');
   var em = document.getElementById('e-kom');
   if (!list.length) { tb.innerHTML=''; em.style.display='block'; return; }
   em.style.display='none';
-  var lastStimme = '';
-  tb.innerHTML = list.map(function(a){
-    var m = mById(a.mid);
-    var stimme = m ? m.stimme : '';
-    var sep = '';
-    if (stimme !== lastStimme) {
-      lastStimme = stimme;
-      sep = '<tr style="background:var(--sur2)"><td colspan="6" style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txd);padding:8px 12px">'+vn2[stimme]+'</td></tr>';
-    }
-    var umfLabel = a.umfang==='sammlung' ? 'Sammelindi x'+fNum(a.anzahl||2) : (ul[a.umfang]||'Ganzer Tag');
-    return sep + '<tr>'+
-      '<td>'+mNm(a.mid)+'</td>'+
-      '<td><span class="badge" style="font-size:10px;border-color:var(--brdl);color:var(--txm)">'+stimme+'</span></td>'+
-      '<td>'+fd(a.datum)+'</td>'+
-      '<td style="font-size:11px;color:var(--txd)">'+umfLabel+'</td>'+
-      '<td>'+(bl[a.status]||a.status)+'</td>'+
-      '<td style="font-size:11px;color:var(--txm);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.bemerkung||'-')+'</td>'+
-      '</tr>';
-  }).join('');
+
+  // Gruppieren nach Datum
+  var byDate = {};
+  var dates = [];
+  list.forEach(function(a){
+    if (!byDate[a.datum]) { byDate[a.datum]=[]; dates.push(a.datum); }
+    byDate[a.datum].push(a);
+  });
+  dates.sort();
+
+  var rows = '';
+  var sm = {};
+  D.s.forEach(function(s){ sm[s.datum]=s; });
+
+  dates.forEach(function(dat){
+    // Datumszeile
+    var dp = dat.split('-');
+    var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    var wtag = wt2[dObj.getDay()];
+    var istHeute = dat===t;
+    var sperr = sm[dat];
+    var datLabel = '<b>'+wtag+', '+dp[2]+'.'+dp[1]+'.'+dp[0]+'</b>';
+    if (istHeute) datLabel += ' <span style="font-size:10px;color:var(--gld);font-weight:700;margin-left:6px">HEUTE</span>';
+    if (sperr) datLabel += ' <span style="font-size:10px;color:var(--red);margin-left:6px">&#128721; '+sperr.typ+(sperr.beschreibung?' &ndash; '+sperr.beschreibung:'')+'</span>';
+    rows += '<tr style="background:var(--sur2)"><td colspan="4" style="padding:10px 14px;font-size:14px;color:var(--txt)">'+datLabel+'</td></tr>';
+
+    // Mitglieder des Tages, sortiert nach Stimmgruppe
+    var antrage = byDate[dat].slice().sort(function(a,b){
+      var ma=mById(a.mid), mb=mById(b.mid);
+      var vs = vo.indexOf(ma?ma.stimme:'') - vo.indexOf(mb?mb.stimme:'');
+      if (vs!==0) return vs;
+      return (ma?ma.nachname:'').localeCompare(mb?mb.nachname:'');
+    });
+    antrage.forEach(function(a){
+      var m = mById(a.mid);
+      var stimme = m ? m.stimme : '';
+      var umfLabel = a.umfang==='sammlung'?'Sammelindi x'+fNum(a.anzahl||2):(ul[a.umfang]||'Ganzer Tag');
+      rows += '<tr>'+
+        '<td style="padding:10px 14px;width:28px">'+
+          '<div style="width:26px;height:26px;border-radius:3px;background:'+
+          (stimme==='S'?'var(--blud)':stimme==='A'?'var(--grnd)':stimme==='T'?'var(--gldd)':'var(--redd)')+
+          ';color:'+(vc[stimme]||'var(--txm)')+
+          ';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">'+
+          stimme+'</div></td>'+
+        '<td style="padding:10px 6px;font-size:14px;font-weight:500">'+mNm(a.mid)+'</td>'+
+        '<td style="padding:10px 6px;font-size:11px;color:var(--txd);white-space:nowrap">'+umfLabel+'</td>'+
+        '<td style="padding:10px 14px 10px 6px">'+(bl[a.status]||a.status)+
+          (a.bemerkung?'<div style="font-size:10px;color:var(--txm);margin-top:3px">'+a.bemerkung+'</div>':'')+
+        '</td></tr>';
+    });
+  });
+  tb.innerHTML = rows;
 }
 
 function jsc(l,v,c){var col=c||'var(--txd)';if(typeof v==='number'&&v<0) col='var(--red)';return '<div class="jsc"><div class="jsl">'+l+'</div><div class="jsv" style="color:'+col+'">'+fNum(v)+'</div></div>';}
