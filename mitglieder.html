@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v11 -->
+<!-- v12 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -148,21 +148,20 @@ select:focus{border-color:var(--gld);}
   <div class="section">
     <div class="section-title">Termin abfragen</div>
     <div style="padding:16px">
-      <div class="check-row">
-        <div class="check-lbl">Datum</div>
-        <input type="date" id="check-dat" class="check-inp">
+      <input type="date" id="check-dat" style="display:none">
+      <div style="margin-bottom:10px">
+        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Datum</div>
+        <button class="btn" onclick="document.getElementById('check-dat').showPicker();document.getElementById('check-dat').onchange=function(){updateDatumBtn();}" style="width:100%;text-align:center" id="btn-dat">Datum w&#228;hlen</button>
       </div>
-      <div class="check-row">
-        <div class="check-lbl">Umfang</div>
-        <select id="check-umf" class="check-inp">
+      <div style="margin-bottom:10px">
+        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Umfang</div>
+        <select id="check-umf" style="display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;box-sizing:border-box;outline:none">
           <option value="ganz">Ganzer Tag</option>
           <option value="erste">Erster Dienst</option>
           <option value="zweite">Zweiter Dienst</option>
         </select>
       </div>
-      <div class="check-row">
-        <button class="check-inp" onclick="checkTermin()" style="border:1px solid var(--gld);color:var(--gld);background:var(--gldd);cursor:pointer;font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase">Pr&#252;fen</button>
-      </div>
+      <button class="btn" onclick="checkTermin()" style="width:100%;text-align:center">Pr&#252;fen</button>
       <div id="check-result" style="margin-top:14px;display:none"></div>
     </div>
   </div>
@@ -431,6 +430,17 @@ function jabItem(l,v){
 document.getElementById('m-sel').addEventListener('change', function(){
   if(this.value) zeigeProfil();
 });
+
+function updateDatumBtn() {
+  var dat = document.getElementById('check-dat').value;
+  var btn = document.getElementById('btn-dat');
+  if (dat) {
+    var p = dat.split('-');
+    btn.textContent = p[2]+'.'+p[1]+'.'+p[0];
+    btn.style.borderColor = 'var(--gld)';
+    btn.style.fontWeight = '600';
+  }
+}
 
 function checkTermin() {
   var dat = document.getElementById('check-dat').value;
