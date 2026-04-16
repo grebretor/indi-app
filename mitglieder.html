@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v12 -->
+<!-- v13 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -107,6 +107,12 @@ select:focus{border-color:var(--gld);}
   .jab-item{border-bottom:1px solid var(--brd);}
   .check-grid{grid-template-columns:1fr;}
 }
+.btn-step{width:100%;text-align:center;margin-bottom:10px;padding:13px 18px;font-size:12px;display:block;}
+.step-nr{opacity:.6;margin-right:4px;}
+.btn-pruef{background:var(--gld);color:#fff;border-color:var(--gld);font-weight:600;font-size:13px;}
+.btn-pruef:hover{background:#7a5c1e;}
+.umf-opt{padding:13px 16px;cursor:pointer;font-size:15px;background:var(--sur);color:var(--txt);}
+.umf-opt:hover,.umf-opt.sel{background:var(--gldd);color:var(--gld);font-weight:600;}
 </style>
 </head>
 <body>
@@ -149,19 +155,22 @@ select:focus{border-color:var(--gld);}
     <div class="section-title">Termin abfragen</div>
     <div style="padding:16px">
       <input type="date" id="check-dat" style="display:none">
-      <div style="margin-bottom:10px">
-        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Datum</div>
-        <button class="btn" onclick="document.getElementById('check-dat').showPicker();document.getElementById('check-dat').onchange=function(){updateDatumBtn();}" style="width:100%;text-align:center" id="btn-dat">Datum w&#228;hlen</button>
+      <button class="btn btn-step" id="btn-dat"
+        onclick="document.getElementById('check-dat').showPicker();document.getElementById('check-dat').onchange=function(){updateDatumBtn();}">
+        <span class="step-nr">1.</span> Datum w&#228;hlen
+      </button>
+      <button class="btn btn-step" id="btn-umf" onclick="toggleUmfang()">
+        <span class="step-nr">2.</span> <span id="btn-umf-lbl">Umfang w&#228;hlen</span>
+      </button>
+      <div id="umf-picker" style="display:none;margin-bottom:10px;border:1.5px solid var(--gld);border-radius:3px;overflow:hidden">
+        <div class="umf-opt" data-val="ganz"  onclick="pickUmfang(this)">Ganzer Tag</div>
+        <div class="umf-opt" data-val="erste" onclick="pickUmfang(this)" style="border-top:1px solid var(--brd)">Erster Dienst</div>
+        <div class="umf-opt" data-val="zweite" onclick="pickUmfang(this)" style="border-top:1px solid var(--brd)">Zweiter Dienst</div>
       </div>
-      <div style="margin-bottom:10px">
-        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Umfang</div>
-        <select id="check-umf" style="display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;box-sizing:border-box;outline:none">
-          <option value="ganz">Ganzer Tag</option>
-          <option value="erste">Erster Dienst</option>
-          <option value="zweite">Zweiter Dienst</option>
-        </select>
-      </div>
-      <button class="btn" onclick="checkTermin()" style="width:100%;text-align:center">Pr&#252;fen</button>
+      <input type="hidden" id="check-umf" value="ganz">
+      <button class="btn btn-step btn-pruef" onclick="checkTermin()">
+        <span class="step-nr">3.</span> Pr&#252;fen
+      </button>
       <div id="check-result" style="margin-top:14px;display:none"></div>
     </div>
   </div>
@@ -436,10 +445,30 @@ function updateDatumBtn() {
   var btn = document.getElementById('btn-dat');
   if (dat) {
     var p = dat.split('-');
-    btn.textContent = p[2]+'.'+p[1]+'.'+p[0];
+    btn.innerHTML = '<span class="step-nr">1.</span> ' + p[2]+'.'+p[1]+'.'+p[0];
     btn.style.borderColor = 'var(--gld)';
+    btn.style.color = 'var(--gld)';
     btn.style.fontWeight = '600';
   }
+}
+
+function toggleUmfang() {
+  var picker = document.getElementById('umf-picker');
+  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+function pickUmfang(el) {
+  document.querySelectorAll('.umf-opt').forEach(function(o){o.classList.remove('sel');});
+  el.classList.add('sel');
+  document.getElementById('check-umf').value = el.dataset.val;
+  var labels = {ganz:'Ganzer Tag', erste:'Erster Dienst', zweite:'Zweiter Dienst'};
+  var btn = document.getElementById('btn-umf-lbl');
+  btn.textContent = labels[el.dataset.val] || el.dataset.val;
+  var btnEl = document.getElementById('btn-umf');
+  btnEl.style.borderColor = 'var(--gld)';
+  btnEl.style.color = 'var(--gld)';
+  btnEl.style.fontWeight = '600';
+  document.getElementById('umf-picker').style.display = 'none';
 }
 
 function checkTermin() {
