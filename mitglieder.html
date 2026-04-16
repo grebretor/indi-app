@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v10 -->
+<!-- v11 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -97,6 +97,8 @@ select:focus{border-color:var(--gld);}
 .check-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;overflow:hidden;}
 .check-grid>div{min-width:0;overflow:hidden;}
 .check-grid input,.check-grid select{max-width:100%;width:100%;}
+.check-row{margin-bottom:10px;}
+.check-inp{display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;box-sizing:border-box;outline:none;-webkit-appearance:none;appearance:none;}
 @media(max-width:500px){
   .karten{grid-template-columns:1fr 1fr;}
   .jah-grid{grid-template-columns:repeat(2,1fr);}
@@ -145,20 +147,22 @@ select:focus{border-color:var(--gld);}
   <!-- Terminabfrage -->
   <div class="section">
     <div class="section-title">Termin abfragen</div>
-    <div style="padding:16px;overflow:hidden">
-      <div style="margin-bottom:10px">
-        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Datum</div>
-        <input type="date" id="check-dat" style="display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;box-sizing:border-box;outline:none;max-width:100%">
+    <div style="padding:16px">
+      <div class="check-row">
+        <div class="check-lbl">Datum</div>
+        <input type="date" id="check-dat" class="check-inp">
       </div>
-      <div style="margin-bottom:10px">
-        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Umfang</div>
-        <select id="check-umf" style="display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;box-sizing:border-box;outline:none">
+      <div class="check-row">
+        <div class="check-lbl">Umfang</div>
+        <select id="check-umf" class="check-inp">
           <option value="ganz">Ganzer Tag</option>
           <option value="erste">Erster Dienst</option>
           <option value="zweite">Zweiter Dienst</option>
         </select>
       </div>
-      <button class="btn" onclick="checkTermin()" style="width:100%;text-align:center">Pr&#252;fen</button>
+      <div class="check-row">
+        <button class="check-inp" onclick="checkTermin()" style="border:1px solid var(--gld);color:var(--gld);background:var(--gldd);cursor:pointer;font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase">Pr&#252;fen</button>
+      </div>
       <div id="check-result" style="margin-top:14px;display:none"></div>
     </div>
   </div>
