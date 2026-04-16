@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v7 -->
+<!-- v8 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -94,7 +94,9 @@ select:focus{border-color:var(--gld);}
 
 .es{text-align:center;padding:28px;color:var(--txd);font-size:12px;}
 
-.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;overflow:hidden;}
+.check-grid>div{min-width:0;overflow:hidden;}
+.check-grid input,.check-grid select{max-width:100%;width:100%;}
 @media(max-width:500px){
   .karten{grid-template-columns:1fr 1fr;}
   .jah-grid{grid-template-columns:repeat(2,1fr);}
@@ -147,7 +149,7 @@ select:focus{border-color:var(--gld);}
       <div class="check-grid">
         <div>
           <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Datum</div>
-          <input type="date" id="check-dat" style="display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;box-sizing:border-box;outline:none;min-height:46px">
+          <input type="date" id="check-dat" style="display:block;width:100%;max-width:100%;background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;box-sizing:border-box;outline:none;overflow:hidden">
         </div>
         <div>
           <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">Umfang</div>
