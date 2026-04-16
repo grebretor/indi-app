@@ -234,7 +234,7 @@ textarea{min-height:80px;resize:vertical;}
 </div>
 
 <div class="panel" id="p-jah">
-  <div class="ph"><h2>Kommende Indis</h2></div>
+  <div class="ph"><h2>Kommende Indis</h2><button class="btn btn-g" onclick="komCsv()">&#8595; CSV</button></div>
   <div class="tw"><table style="table-layout:fixed">
     <colgroup><col style="width:38px"><col><col style="width:90px"><col style="width:110px"></colgroup>
     <tbody id="t-kom"></tbody>
@@ -776,10 +776,10 @@ function rKom() {
     var wtag = wt2[dObj.getDay()];
     var istHeute = dat===t;
     var sperr = sm[dat];
-    var datLabel = '<b>'+wtag+', '+dp[2]+'.'+dp[1]+'.'+dp[0]+'</b>';
+    var datLabel = '<span style="font-weight:500;letter-spacing:.03em">'+wtag+', '+dp[2]+'.'+dp[1]+'.'+dp[0]+'</span>';
     if (istHeute) datLabel += ' <span style="font-size:10px;color:var(--gld);font-weight:700;margin-left:6px">HEUTE</span>';
     if (sperr) datLabel += ' <span style="font-size:10px;color:var(--red);margin-left:6px">&#128721; '+sperr.typ+(sperr.beschreibung?' &ndash; '+sperr.beschreibung:'')+'</span>';
-    rows += '<tr style="background:var(--sur2)"><td colspan="4" style="padding:10px 14px;font-size:14px;color:var(--txt)">'+datLabel+'</td></tr>';
+    rows += '<tr style="background:var(--sur2)"><td colspan="4" style="padding:10px 14px;font-size:13px;color:var(--gld);letter-spacing:.04em">'+datLabel+'</td></tr>';
 
     // Mitglieder des Tages, sortiert nach Stimmgruppe
     var antrage = byDate[dat].slice().sort(function(a,b){
@@ -1346,6 +1346,37 @@ function kCsv(){
   dlFile(csvBom()+'Datum;Art;Status;Details;Wert\r\n'+rows.join('\r\n'),
     'Konto_'+m.nachname+'_'+fl[_kF]+'.csv','text/csv');
   toast('Exportiert','ok');
+}
+
+function komCsv() {
+  var t = td();
+  var vo = ['S','A','T','B'];
+  var vn2 = {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'};
+  var ul = {ganz:'Ganzer Tag',erste:'1. Dienst',zweite:'2. Dienst'};
+  var wt2 = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  var list = D.a.filter(function(a){
+    return a.datum >= t && a.status !== 'abgelehnt' && a.status !== 'genommen';
+  }).sort(function(a,b){
+    if (a.datum !== b.datum) return a.datum < b.datum ? -1 : 1;
+    var ma=mById(a.mid), mb=mById(b.mid);
+    return vo.indexOf(ma?ma.stimme:'') - vo.indexOf(mb?mb.stimme:'');
+  });
+  if (!list.length) { toast('Keine kommenden Indis','er'); return; }
+  var header = 'Datum;Wochentag;Stimme;Name;Umfang;Status;Bemerkung';
+  var rows = list.map(function(a){
+    var m = mById(a.mid);
+    var dp = a.datum.split('-');
+    var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    var wtag = wt2[dObj.getDay()];
+    var datDe = dp[2]+'.'+dp[1]+'.'+dp[0];
+    var umfLabel = a.umfang==='sammlung'?'Sammelindi x'+fNum(a.anzahl||2):(ul[a.umfang]||'Ganzer Tag');
+    var stLabel = {beantragt:'Beantragt',genehmigt:'Genehmigt'}[a.status]||a.status;
+    return [datDe, wtag, m?vn2[m.stimme]||m.stimme:'', m?m.vorname+' '+m.nachname:'',
+      umfLabel, stLabel, a.bemerkung||'']
+      .map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(';');
+  });
+  dlFile(csvBom()+header+'\r\n'+rows.join('\r\n'),'Kommende-Indis-'+td()+'.csv','text/csv');
+  toast('CSV exportiert','ok');
 }
 
 // Init
