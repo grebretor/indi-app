@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v18 -->
+<!-- v19 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -113,6 +113,16 @@ select:focus{border-color:var(--gld);}
 .btn-pruef:hover{background:#7a5c1e;}
 .umf-opt{padding:13px 16px;cursor:pointer;font-size:15px;background:var(--sur);color:var(--txt);}
 .umf-opt:hover,.umf-opt.sel{background:var(--gldd);color:var(--gld);font-weight:600;}
+.dat-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.dat-nav button{background:none;border:none;font-size:18px;cursor:pointer;color:var(--gld);padding:4px 10px;}
+.dat-hdr{font-size:14px;font-weight:500;color:var(--txt);}
+.dat-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.dat-ch{font-size:9px;text-align:center;color:var(--txd);padding:2px 0 4px;letter-spacing:.08em;text-transform:uppercase;}
+.dat-d{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:3px;cursor:pointer;border:1px solid transparent;}
+.dat-d:hover{background:var(--gldd);}
+.dat-d.sel{background:var(--gld);color:#fff;font-weight:600;}
+.dat-d.today{border-color:var(--gld);color:var(--gld);}
+.dat-d.other{color:var(--sur3);}
 </style>
 </head>
 <body>
@@ -154,15 +164,12 @@ select:focus{border-color:var(--gld);}
   <div class="section">
     <div class="section-title">Termin abfragen</div>
     <div style="padding:16px">
-      <div style="margin-bottom:10px">
-        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">1. Datum w&#228;hlen</div>
-        <input type="date" id="check-dat" onchange="updateDatumBtn()"
-          style="display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);
-                 color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;
-                 border-radius:3px;box-sizing:border-box;outline:none">
-      </div>
+      <button class="btn btn-step" id="btn-dat" onclick="openDatPicker()">
+        <span class="step-nr">1.</span> <span id="btn-dat-lbl">Datum w&#228;hlen</span>
+      </button>
+      <input type="hidden" id="check-dat" value="">
       <button class="btn btn-step" id="btn-umf" onclick="toggleUmfang()">
-        <span class="step-nr">2.</span> Umfang w&#228;hlen
+        <span class="step-nr">2.</span> <span id="btn-umf-lbl">Umfang w&#228;hlen</span>
       </button>
       <div id="umf-picker" style="display:none;margin-bottom:10px;border:1.5px solid var(--gld);border-radius:3px;overflow:hidden">
         <div class="umf-opt" data-val="ganz"  onclick="pickUmfang(this)">Ganzer Tag</div>
@@ -170,10 +177,20 @@ select:focus{border-color:var(--gld);}
         <div class="umf-opt" data-val="zweite" onclick="pickUmfang(this)" style="border-top:1px solid var(--brd)">Zweiter Dienst</div>
       </div>
       <input type="hidden" id="check-umf" value="ganz">
-      <button class="btn btn-step btn-pruef" onclick="checkTermin()">
-        Pr&#252;fen
-      </button>
+      <button class="btn btn-step btn-pruef" onclick="checkTermin()">Pr&#252;fen</button>
       <div id="check-result" style="margin-top:14px;display:none"></div>
+    </div>
+  </div>
+
+  <!-- Mini-Datepicker Modal -->
+  <div id="m-dat" style="display:none;position:fixed;inset:0;background:rgba(26,23,20,.55);z-index:300;align-items:flex-end;justify-content:center">
+    <div style="background:var(--sur);border-top:3px solid var(--gld);padding:20px;width:100%;max-width:400px;border-radius:12px 12px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.15)">
+      <div style="font-size:16px;font-weight:400;color:var(--gld);margin-bottom:16px">Datum w&#228;hlen</div>
+      <div id="dat-grid" style="margin-bottom:16px"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn" style="flex:1;text-align:center;border-color:var(--brdl);color:var(--txm)" onclick="closeDatPicker()">Abbrechen</button>
+        <button class="btn btn-pruef" style="flex:1;text-align:center" onclick="confirmDat()">&#220;bernehmen</button>
+      </div>
     </div>
   </div>
 
@@ -215,8 +232,8 @@ select:focus{border-color:var(--gld);}
 // =====================================================================
 // KONFIGURATION - dieselben Werte wie in index.html eintragen
 // =====================================================================
-var SUPABASE_URL  = 'https://lqfoybhgtlyvnbtuwggi.supabase.co';        // z.B. https://xyz.supabase.co
-var SUPABASE_KEY  = 'sb_publishable_MJUP_gLZccCY-UUlF1p7oQ_JB1hta_g';  // aus Supabase Projekteinstellungen
+var SUPABASE_URL = 'DEINE_SUPABASE_URL';
+var SUPABASE_KEY = 'DEIN_ANON_KEY';
 // =====================================================================
 
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -442,13 +459,7 @@ document.getElementById('m-sel').addEventListener('change', function(){
   if(this.value) zeigeProfil();
 });
 
-function updateDatumBtn() {
-  var dat = document.getElementById('check-dat').value;
-  var inp = document.getElementById('check-dat');
-  if (dat && inp) {
-    inp.style.borderColor = 'var(--gld)';
-  }
-}
+function updateDatumBtn() {}
 
 function toggleUmfang() {
   var picker = document.getElementById('umf-picker');
@@ -460,13 +471,10 @@ function pickUmfang(el) {
   el.classList.add('sel');
   document.getElementById('check-umf').value = el.dataset.val;
   var labels = {ganz:'Ganzer Tag', erste:'Erster Dienst', zweite:'Zweiter Dienst'};
-  var btn = document.getElementById('btn-umf-lbl');
-  btn.textContent = labels[el.dataset.val] || el.dataset.val;
-  var btnEl = document.getElementById('btn-umf');
-  btnEl.style.borderColor = 'var(--gld)';
-  btnEl.style.color = 'var(--gld)';
-  btnEl.style.fontWeight = '600';
-  document.getElementById('umf-picker').style.display = 'none';
+  document.getElementById('btn-umf-lbl').textContent = labels[el.dataset.val]||el.dataset.val;
+  var btn = document.getElementById('btn-umf');
+  btn.style.borderColor='var(--gld)'; btn.style.color='var(--gld)'; btn.style.fontWeight='600';
+  document.getElementById('umf-picker').style.display='none';
 }
 
 function checkTermin() {
