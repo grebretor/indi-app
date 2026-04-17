@@ -51,6 +51,7 @@ main{padding:24px 20px;max-width:1200px;margin:0 auto;}
 .dash-heute{grid-column:1;grid-row:1;}
 .dash-offen{grid-column:2;grid-row:1;}
 .dash-voice{grid-column:1 / span 2;grid-row:2;}
+.dash-gut{grid-column:1 / span 2;grid-row:3;}
 .tw{overflow-x:auto;border:1px solid var(--brd);border-radius:4px;}
 table{width:100%;border-collapse:collapse;background:var(--sur);}
 th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--txm);padding:10px 12px;text-align:left;background:var(--sur2);border-bottom:2px solid var(--brd);white-space:nowrap;}
@@ -123,7 +124,7 @@ textarea{min-height:80px;resize:vertical;}
   .stats{grid-template-columns:1fr 1fr;}
   .dash-grid{grid-template-columns:1fr;}
   .dash-heute,.dash-offen,.dash-voice{grid-column:1;}
-  .dash-heute{grid-row:1;}.dash-offen{grid-row:2;}.dash-voice{grid-row:3;}
+  .dash-heute{grid-row:1;}.dash-offen{grid-row:2;}.dash-voice{grid-row:3;}.dash-gut{grid-column:1;grid-row:4;}
   .gr2{grid-template-columns:1fr;}
   .jg{grid-template-columns:1fr 1fr;}
   .js{grid-template-columns:repeat(3,1fr);}
@@ -194,6 +195,7 @@ textarea{min-height:80px;resize:vertical;}
     <div class="card dash-heute"><h3 id="d-heute-title">Indis heute</h3><div id="d-heute"></div></div>
     <div class="card dash-offen"><h3>Offene Anträge</h3><div id="d-pend"></div></div>
     <div class="card dash-voice"><h3>Kontingent je Stimmgruppe</h3><div id="d-voice"></div></div>
+    <div class="card dash-gut"><h3>Gutschriften</h3><div id="d-gut"></div></div>
   </div>
 </div>
 
@@ -587,16 +589,50 @@ function rDash() {
   }
 
   var vl=[{k:'S',n:'Sopran'},{k:'A',n:'Alt'},{k:'T',n:'Tenor'},{k:'B',n:'Bass'}];
+  // Gutschriften-Statistik
+  var gutTotal = D.g.reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
+  var gutJahre = {};
+  D.g.forEach(function(g){
+    if (!g.datum) return;
+    var yr = g.datum.slice(0,4);
+    gutJahre[yr] = (gutJahre[yr]||0) + parseFloat(g.anzahl);
+  });
+  var jahre = Object.keys(gutJahre).sort();
+  var avgJahr = jahre.length ? Math.round(gutTotal/jahre.length*10)/10 : 0;
+  var avgMit  = D.m.length ? Math.round(gutTotal/D.m.length*10)/10 : 0;
+
+  var gutHtml = '';
+  if (!D.g.length) {
+    gutHtml = '<div class="es">Keine Gutschriften vorhanden</div>';
+  } else {
+    gutHtml = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">';
+    gutHtml += jsc('Gesamt',gutTotal,'var(--gld)');
+    gutHtml += jsc('&#216; pro Jahr',avgJahr,'var(--txm)');
+    gutHtml += jsc('&#216; pro Mitglied',avgMit,'var(--txm)');
+    gutHtml += '</div>';
+    if (jahre.length > 1) {
+      gutHtml += '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+      jahre.forEach(function(yr){
+        gutHtml += '<div style="background:var(--sur2);border:1px solid var(--brd);border-radius:3px;padding:5px 12px;font-size:12px;">'
+          +'<span style="color:var(--txd);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-right:6px">'+yr+'</span>'
+          +'<span style="color:var(--txt);font-weight:500">'+fNum(gutJahre[yr])+'</span></div>';
+      });
+      gutHtml += '</div>';
+    }
+  }
+  document.getElementById('d-gut').innerHTML = gutHtml;
+
   document.getElementById('d-voice').innerHTML=vl.map(function(v){
     var ms=D.m.filter(function(m){return m.stimme===v.k;});
     if (!ms.length) return '';
     // Frei/Kontingent aus cnt() - konsistent mit Mitgliederliste
     var tf=ms.reduce(function(s,m){return s+cnt(m.id).frei;},0);
     var ta=ms.reduce(function(s,m){return s+ko(m);},0);
+    var avg=ms.length?Math.round(tf/ms.length*10)/10:0;
     var pct=ta?Math.round(tf/ta*100):0;
     return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:5px">'+
       '<span style="font-size:12px;color:var(--txm)">'+v.n+' ('+ms.length+')</span>'+
-      '<span style="font-size:12px;color:var(--txd)">'+fNum(tf)+' / '+fNum(ta)+'</span></div>'+
+      '<span style="font-size:12px;color:var(--txd)">'+fNum(tf)+' frei / &#216; '+fNum(avg)+'</span></div>'+
       '<div style="height:4px;background:var(--sur3)"><div style="height:4px;width:'+pct+'%;background:var(--gld)"></div></div></div>';
   }).join('');
 }
@@ -690,19 +726,31 @@ function rMit() {
     html+='<div class="vgh">'+vn[v]+'</div>';
     gr.forEach(function(m){
       var c=cnt(m.id);
-      var dots=Array.from({length:Math.min(c.k,10)},function(_,i){
-        if (i<c.gn) return '<div style="width:8px;height:8px;border-radius:50%;background:var(--brdl);display:inline-block;margin:1px"></div>';
-        if (i<c.gn+c.g) return '<div style="width:8px;height:8px;border-radius:50%;background:var(--grn);display:inline-block;margin:1px"></div>';
-        if (i<c.gn+c.g+c.b) return '<div style="width:8px;height:8px;border-radius:50%;background:var(--amb);display:inline-block;margin:1px"></div>';
-        return '<div style="width:8px;height:8px;border-radius:50%;background:var(--gld);display:inline-block;margin:1px"></div>';
-      }).join('');
+      // Punkte = freie Indis (max 10), rot bei negativem Saldo
+      var freiAnz = c.frei;
+      var dotColor = freiAnz < 0 ? 'var(--red)' : 'var(--gld)';
+      var dotCount = Math.min(Math.abs(Math.round(freiAnz*2)),10); // *2 für halbe Indis
+      var dots = '';
+      if (freiAnz < 0) {
+        // Rote Punkte für Überziehung
+        for (var di=0; di<dotCount; di++)
+          dots += '<div style="width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;margin:1px"></div>';
+      } else {
+        // Goldene Punkte für freie Indis (ganze = voll, halbe = halb)
+        var ganz = Math.floor(freiAnz);
+        var halb = (freiAnz - ganz) >= 0.5 ? 1 : 0;
+        for (var di=0; di<Math.min(ganz,10); di++)
+          dots += '<div style="width:8px;height:8px;border-radius:50%;background:var(--gld);display:inline-block;margin:1px"></div>';
+        if (halb && ganz<10)
+          dots += '<div style="width:8px;height:8px;border-radius:50%;background:linear-gradient(90deg,var(--gld) 50%,var(--sur3) 50%);display:inline-block;margin:1px"></div>';
+      }
       var gs=D.g.filter(function(g){return g.mid===m.id;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
       html+='<div class="mc">'+
         '<div class="mv v'+m.stimme+'" onclick="openKto(\''+m.id+'\')">'+m.stimme+'</div>'+
         '<div style="flex:1;min-width:0">'+
           '<div class="mn" onclick="openKto(\''+m.id+'\')">'+m.vorname+' '+m.nachname+'</div>'+
           '<div style="margin-top:4px">'+dots+'</div>'+
-          '<div style="font-size:10px;color:var(--txd);margin-top:3px">'+fNum(c.frei)+' / '+fNum(c.k)+' frei'+(gs>0?' +'+fNum(gs)+' Gutschrift':'')+' </div>'+
+          '<div style="font-size:10px;color:var(--txd);margin-top:3px">'+(freiAnz<0?'<span style="color:var(--red)">'+fNum(freiAnz)+' (überzogen)</span>':fNum(freiAnz)+' frei')+'</div>'+
         '</div>'+
         '<div style="display:flex;flex-direction:column;gap:4px">'+
           '<button class="ab" style="font-size:9px;border-color:var(--grn);color:var(--grn)" data-gut="'+m.id+'">+ Gut.</button>'+
