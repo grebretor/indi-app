@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v19 -->
+<!-- v20 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -569,6 +569,86 @@ function checkTermin() {
     }).join('');
   }
 }
+
+// Mini-Datepicker
+var _dpYear = new Date().getFullYear();
+var _dpMonth = new Date().getMonth();
+var _dpSel = '';
+
+function openDatPicker() {
+  var cur = document.getElementById('check-dat').value;
+  if (cur) {
+    var p = cur.split('-');
+    _dpYear = parseInt(p[0]); _dpMonth = parseInt(p[1])-1; _dpSel = cur;
+  } else {
+    var now = new Date(); _dpYear = now.getFullYear(); _dpMonth = now.getMonth(); _dpSel = '';
+  }
+  renderDatPicker();
+  document.getElementById('m-dat').style.display = 'flex';
+}
+
+function closeDatPicker() {
+  document.getElementById('m-dat').style.display = 'none';
+}
+
+function confirmDat() {
+  if (!_dpSel) { closeDatPicker(); return; }
+  document.getElementById('check-dat').value = _dpSel;
+  var p = _dpSel.split('-');
+  document.getElementById('btn-dat-lbl').textContent = p[2]+'.'+p[1]+'.'+p[0];
+  var btn = document.getElementById('btn-dat');
+  btn.style.borderColor = 'var(--gld)';
+  btn.style.color = 'var(--gld)';
+  btn.style.fontWeight = '600';
+  closeDatPicker();
+}
+
+function renderDatPicker() {
+  var mn = ['Januar','Februar','M\u00e4rz','April','Mai','Juni',
+            'Juli','August','September','Oktober','November','Dezember'];
+  var wd = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  var today = new Date().toISOString().slice(0,10);
+  var fd = new Date(_dpYear, _dpMonth, 1);
+  var dim = new Date(_dpYear, _dpMonth+1, 0).getDate();
+  var sw = fd.getDay(); sw = sw===0 ? 6 : sw-1;
+  var html = '<div class="dat-nav">'
+    +'<button onclick="dpNav(-1)">&#8249;</button>'
+    +'<span class="dat-hdr">'+mn[_dpMonth]+' '+_dpYear+'</span>'
+    +'<button onclick="dpNav(1)">&#8250;</button>'
+    +'</div><div class="dat-grid">'
+    + wd.map(function(d){return '<div class="dat-ch">'+d+'</div>';}).join('');
+  for (var i=0; i<sw; i++) html += '<div></div>';
+  for (var d=1; d<=dim; d++) {
+    var ds = _dpYear+'-'+String(_dpMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var cl = 'dat-d';
+    if (ds===_dpSel) cl += ' sel';
+    else if (ds===today) cl += ' today';
+    var div = document.createElement('div');
+    div.className = cl;
+    div.textContent = d;
+    div.setAttribute('data-ds', ds);
+    html += div.outerHTML;
+  }
+  html += '</div>';
+  var grid = document.getElementById('dat-grid');
+  grid.innerHTML = html;
+  grid.querySelectorAll('.dat-d').forEach(function(el){
+    el.addEventListener('click', function(){ selDat(this.getAttribute('data-ds')); });
+  });
+}
+
+function dpNav(dir) {
+  _dpMonth += dir;
+  if (_dpMonth > 11) { _dpMonth = 0; _dpYear++; }
+  if (_dpMonth < 0)  { _dpMonth = 11; _dpYear--; }
+  renderDatPicker();
+}
+
+function selDat(ds) {
+  _dpSel = ds;
+  renderDatPicker();
+}
+
 
 laden();
 </script>
