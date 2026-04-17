@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v17 -->
+<!-- v18 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -154,22 +154,15 @@ select:focus{border-color:var(--gld);}
   <div class="section">
     <div class="section-title">Termin abfragen</div>
     <div style="padding:16px">
-      <div style="margin-bottom:10px;position:relative">
+      <div style="margin-bottom:10px">
+        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:6px">1. Datum w&#228;hlen</div>
         <input type="date" id="check-dat" onchange="updateDatumBtn()"
-          style="display:block;width:100%;box-sizing:border-box;
-                 background:var(--gldd);border:1px solid var(--gld);color:transparent;
-                 font-family:inherit;font-size:12px;letter-spacing:.1em;
-                 padding:13px 18px;border-radius:3px;cursor:pointer;
-                 -webkit-appearance:none;appearance:none;outline:none">
-        <div id="btn-dat" style="position:absolute;top:0;left:0;width:100%;height:100%;
-             display:flex;align-items:center;justify-content:center;
-             pointer-events:none;color:var(--gld);font-size:12px;
-             letter-spacing:.1em;text-transform:uppercase;font-family:inherit">
-          <span style="opacity:.6;margin-right:4px">1.</span> Datum w&#228;hlen
-        </div>
+          style="display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);
+                 color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;
+                 border-radius:3px;box-sizing:border-box;outline:none">
       </div>
       <button class="btn btn-step" id="btn-umf" onclick="toggleUmfang()">
-        <span class="step-nr">2.</span> <span id="btn-umf-lbl">Umfang w&#228;hlen</span>
+        <span class="step-nr">2.</span> Umfang w&#228;hlen
       </button>
       <div id="umf-picker" style="display:none;margin-bottom:10px;border:1.5px solid var(--gld);border-radius:3px;overflow:hidden">
         <div class="umf-opt" data-val="ganz"  onclick="pickUmfang(this)">Ganzer Tag</div>
@@ -178,7 +171,7 @@ select:focus{border-color:var(--gld);}
       </div>
       <input type="hidden" id="check-umf" value="ganz">
       <button class="btn btn-step btn-pruef" onclick="checkTermin()">
-        <span class="step-nr">3.</span> Pr&#252;fen
+        Pr&#252;fen
       </button>
       <div id="check-result" style="margin-top:14px;display:none"></div>
     </div>
@@ -451,11 +444,9 @@ document.getElementById('m-sel').addEventListener('change', function(){
 
 function updateDatumBtn() {
   var dat = document.getElementById('check-dat').value;
-  var lbl = document.getElementById('btn-dat');
-  if (dat) {
-    var p = dat.split('-');
-    lbl.innerHTML = '<span style="opacity:.6;margin-right:4px">1.</span> ' + p[2]+'.'+p[1]+'.'+p[0];
-    lbl.style.fontWeight = '600';
+  var inp = document.getElementById('check-dat');
+  if (dat && inp) {
+    inp.style.borderColor = 'var(--gld)';
   }
 }
 
