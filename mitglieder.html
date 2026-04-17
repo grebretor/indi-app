@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v20 -->
+<!-- v21 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -67,7 +67,7 @@ select:focus{border-color:var(--gld);}
 .br2{color:var(--red);border-color:var(--red);background:var(--redd);}
 .bt{color:var(--txm);border-color:var(--brdl);background:var(--sur2);}
 
-/* Antraege-Liste */
+/* Anträge-Liste */
 .ant-item{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--brd);gap:10px;flex-wrap:wrap;}
 .ant-item:last-child{border-bottom:none;}
 .ant-datum{font-size:15px;font-weight:500;min-width:90px;}
@@ -140,9 +140,9 @@ select:focus{border-color:var(--gld);}
 <div id="auswahl">
   <div class="select-box">
     <h2>Willkommen</h2>
-    <p>Bitte deinen Namen auswaehlen um deine Indi-Uebersicht zu sehen.</p>
+    <p>Bitte deinen Namen auswählen um deine Indi-Uebersicht zu sehen.</p>
     <select id="m-sel">
-      <option value="">-- Name auswaehlen --</option>
+      <option value="">-- Name auswählen --</option>
     </select>
     <button class="btn" onclick="zeigeProfil()">Anzeigen</button>
   </div>
@@ -165,11 +165,11 @@ select:focus{border-color:var(--gld);}
     <div class="section-title">Termin abfragen</div>
     <div style="padding:16px">
       <button class="btn btn-step" id="btn-dat" onclick="openDatPicker()">
-        <span class="step-nr">1.</span> <span id="btn-dat-lbl">Datum w&#228;hlen</span>
+        <span class="step-nr">1.</span> <span id="btn-dat-lbl">Datum wählen</span>
       </button>
       <input type="hidden" id="check-dat" value="">
       <button class="btn btn-step" id="btn-umf" onclick="toggleUmfang()">
-        <span class="step-nr">2.</span> <span id="btn-umf-lbl">Umfang w&#228;hlen</span>
+        <span class="step-nr">2.</span> <span id="btn-umf-lbl">Umfang wählen</span>
       </button>
       <div id="umf-picker" style="display:none;margin-bottom:10px;border:1.5px solid var(--gld);border-radius:3px;overflow:hidden">
         <div class="umf-opt" data-val="ganz"  onclick="pickUmfang(this)">Ganzer Tag</div>
@@ -177,7 +177,7 @@ select:focus{border-color:var(--gld);}
         <div class="umf-opt" data-val="zweite" onclick="pickUmfang(this)" style="border-top:1px solid var(--brd)">Zweiter Dienst</div>
       </div>
       <input type="hidden" id="check-umf" value="ganz">
-      <button class="btn btn-step btn-pruef" onclick="checkTermin()">Pr&#252;fen</button>
+      <button class="btn btn-step btn-pruef" onclick="checkTermin()">Prüfen</button>
       <div id="check-result" style="margin-top:14px;display:none"></div>
     </div>
   </div>
@@ -185,24 +185,24 @@ select:focus{border-color:var(--gld);}
   <!-- Mini-Datepicker Modal -->
   <div id="m-dat" style="display:none;position:fixed;inset:0;background:rgba(26,23,20,.55);z-index:300;align-items:flex-end;justify-content:center">
     <div style="background:var(--sur);border-top:3px solid var(--gld);padding:20px;width:100%;max-width:400px;border-radius:12px 12px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.15)">
-      <div style="font-size:16px;font-weight:400;color:var(--gld);margin-bottom:16px">Datum w&#228;hlen</div>
+      <div style="font-size:16px;font-weight:400;color:var(--gld);margin-bottom:16px">Datum wählen</div>
       <div id="dat-grid" style="margin-bottom:16px"></div>
       <div style="display:flex;gap:10px">
         <button class="btn" style="flex:1;text-align:center;border-color:var(--brdl);color:var(--txm)" onclick="closeDatPicker()">Abbrechen</button>
-        <button class="btn btn-pruef" style="flex:1;text-align:center" onclick="confirmDat()">&#220;bernehmen</button>
+        <button class="btn btn-pruef" style="flex:1;text-align:center" onclick="confirmDat()">Übernehmen</button>
       </div>
     </div>
   </div>
 
     <!-- Jahresabschluss -->
   <div class="section">
-    <div class="section-title">Jahresuebersicht <span id="p-jab-yr"></span></div>
+    <div class="section-title">Übersicht verfallende Indis <span id="p-jab-yr"></span></div>
     <div class="jab-grid" id="p-jab"></div>
   </div>
 
   <!-- Naechste Indis -->
   <div class="section">
-    <div class="section-title">Naechste Indis (ab heute)</div>
+    <div class="section-title">Nächste Indis (ab heute)</div>
     <div id="p-next"></div>
   </div>
 
@@ -366,11 +366,11 @@ function renderProfil(m){
   var ljRest=Math.max(0,PFLICHT-ljGn);
 
   var vjRestHtml=vjRest===0?
-    '<span class="badge bg2">&#10003; Erfuellt</span>':
+    '<span class="badge bg2">&#10003; Erfüllt</span>':
     vjAbgelaufen?'<span class="badge br2">'+fNum(vjRest)+' nicht genommen</span>':
     '<span class="badge bp">'+fNum(vjRest)+' noch offen (bis 31.03.'+yr+')</span>';
   var ljRestHtml=ljRest===0?
-    '<span class="badge bg2">&#10003; Erfuellt</span>':
+    '<span class="badge bg2">&#10003; Erfüllt</span>':
     '<span class="badge bp">'+fNum(ljRest)+' noch offen</span>';
 
   document.getElementById('p-jab').innerHTML=
@@ -604,7 +604,7 @@ function confirmDat() {
 }
 
 function renderDatPicker() {
-  var mn = ['Januar','Februar','M\u00e4rz','April','Mai','Juni',
+  var mn = ['Januar','Februar','März','April','Mai','Juni',
             'Juli','August','September','Oktober','November','Dezember'];
   var wd = ['Mo','Di','Mi','Do','Fr','Sa','So'];
   var today = new Date().toISOString().slice(0,10);
