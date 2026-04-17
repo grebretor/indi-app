@@ -599,7 +599,9 @@ function rDash() {
   });
   var jahre = Object.keys(gutJahre).sort();
   var avgJahr = jahre.length ? Math.round(gutTotal/jahre.length*10)/10 : 0;
-  var avgMit  = D.m.length ? Math.round(gutTotal/D.m.length*10)/10 : 0;
+  // Ø pro Mitglied pro Jahr = Gesamtsumme / (Mitglieder × Jahre)
+  var avgMitJahr = (D.m.length && jahre.length) ?
+    Math.round(gutTotal/D.m.length/jahre.length*10)/10 : 0;
 
   var gutHtml = '';
   if (!D.g.length) {
@@ -608,7 +610,7 @@ function rDash() {
     gutHtml = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">';
     gutHtml += jsc('Gesamt',gutTotal,'var(--gld)');
     gutHtml += jsc('&#216; pro Jahr',avgJahr,'var(--txm)');
-    gutHtml += jsc('&#216; pro Mitglied',avgMit,'var(--txm)');
+    gutHtml += jsc('&#216; p. Mitglied/Jahr',avgMitJahr,'var(--txm)');
     gutHtml += '</div>';
     if (jahre.length > 1) {
       gutHtml += '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
@@ -729,7 +731,7 @@ function rMit() {
       // Punkte = freie Indis (max 10), rot bei negativem Saldo
       var freiAnz = c.frei;
       var dotColor = freiAnz < 0 ? 'var(--red)' : 'var(--gld)';
-      var dotCount = Math.min(Math.abs(Math.round(freiAnz*2)),10); // *2 für halbe Indis
+      var dotCount = Math.min(Math.ceil(Math.abs(freiAnz)), 10);
       var dots = '';
       if (freiAnz < 0) {
         // Rote Punkte für Überziehung
