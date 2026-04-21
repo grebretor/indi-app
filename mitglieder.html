@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v27 -->
+<!-- v28 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -388,6 +388,7 @@ function renderProfil(m){
   }).reduce(function(s,a){return s+wt(a);},0);
 
   var ljStart;
+  var ljBonus = 0;
   if (vjInVj >= PFLICHT) {
     ljStart = yr+'-01-01';
   } else {
@@ -400,22 +401,40 @@ function renderProfil(m){
       if(kum>=PFLICHT){ erfDat=vjJanMar[i].datum; break; }
     }
     if (erfDat) {
-      var d=new Date(erfDat); d.setDate(d.getDate()+1);
-      var nx=d.toISOString().slice(0,10);
-      ljStart = nx<(yr+'-04-01') ? nx : yr+'-04-01';
+      var erfIndi = vjJanMar.find(function(a){ return a.datum===erfDat; });
+      var wErf = erfIndi ? wt(erfIndi) : 1;
+      var fehlte = PFLICHT - (kum - wErf);
+      var ueberschuss = wErf - fehlte;
+      if (ueberschuss > 0) {
+        ljStart = erfDat;
+        ljBonus = ueberschuss;
+      } else {
+        var d=new Date(erfDat); d.setDate(d.getDate()+1);
+        var nx=d.toISOString().slice(0,10);
+        ljStart = nx<(yr+'-04-01') ? nx : yr+'-04-01';
+        ljBonus = 0;
+      }
     } else {
       ljStart = yr+'-04-01';
     }
   }
 
-  // Anzeige: alle genommenen Indis des Laufjahres (1.1.-31.12.)
+  // Anzeige: alle genommenen Indis des Laufjahres (ab ljStart)
   var ljGnAnzeige = alleGn.filter(function(a){
-    return a.datum>=(yr+'-01-01') && a.datum<=ljEnde;
-  }).reduce(function(s,a){return s+wt(a);},0);
+    return a.datum>=ljStart && a.datum<=ljEnde;
+  }).reduce(function(s,a){
+    if (ljBonus>0 && a.datum===ljStart) return s+ljBonus;
+    return s+wt(a);
+  },0);
+  // Plus: Indis vor ljStart die zum Laufjahr-Kalender gehören (Jan-März Anzeige)
+  // werden in "Alle Indis" separat gezeigt - hier nur für Pflicht-Zählung
   // Pflicht: ab dynamischem ljStart (Jan-März ggf. zum Vorjahr zugeordnet)
   var ljGn = alleGn.filter(function(a){
     return a.datum>=ljStart && a.datum<=ljEnde;
-  }).reduce(function(s,a){return s+wt(a);},0);
+  }).reduce(function(s,a){
+    if (ljBonus>0 && a.datum===ljStart) return s+ljBonus;
+    return s+wt(a);
+  },0);
   var vjRest=Math.max(0,PFLICHT-vjGn);
   var ljRest=Math.max(0,PFLICHT-ljGn);
 
