@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v24 -->
+<!-- v25 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -366,7 +366,8 @@ function renderProfil(m){
   document.getElementById('p-ant-yr').textContent = yr;
   document.getElementById('p-kal-yr').textContent = yr;
   var PFLICHT=3;
-  var vjStart=(yr-1)+'-01-01', vjEnde=yr+'-03-31';
+  var vj=yr-1;
+  var vjStart=vj+'-01-01', vjEnde=yr+'-03-31';
   var ljEnde=yr+'-12-31';
   var vjAbgelaufen=t>vjEnde;
 
