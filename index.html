@@ -1208,6 +1208,7 @@ function jabDaten(yr) {
     }).reduce(function(s,a){ return s+wt(a); }, 0);
 
     var ljStart;
+    var ljBonus = 0;  // Anteil des teilenden Indis der ins Laufjahr fällt
     if (vjInVj >= PFLICHT) {
       // Vorjahr bereits im Vorjahr erfüllt → Laufjahr beginnt ab 1.1.
       ljStart = yr + '-01-01';
@@ -1226,12 +1227,24 @@ function jabDaten(yr) {
         }
       }
       if (erfuelltDatum) {
-        // Tag nach Erfüllung, spätestens 1.4.
-        var d = new Date(erfuelltDatum);
-        d.setDate(d.getDate() + 1);
-        var naechster = d.toISOString().slice(0,10);
-        var grenze = yr + '-04-01';
-        ljStart = naechster < grenze ? naechster : grenze;
+        // Prüfe ob der erfüllende Indi exakt passt oder ein Überschuss entsteht
+        var erfuelltIndi = vjGenommenList.find(function(a){ return a.datum===erfuelltDatum && a.datum>(vj+'-12-31'); });
+        var wertErfuellt = erfuelltIndi ? wt(erfuelltIndi) : 1;
+        var fehlte = PFLICHT - (kum - wertErfuellt); // wie viel fehlte vor diesem Indi
+        var ueberschuss = wertErfuellt - fehlte;      // wie viel geht ins Laufjahr
+
+        if (ueberschuss > 0) {
+          // Indi wird geteilt: ljStart = selbes Datum, ljBonus = Überschuss
+          ljStart = erfuelltDatum;
+          ljBonus = ueberschuss;
+        } else {
+          // Indi passt exakt: ljStart = nächster Tag
+          var d = new Date(erfuelltDatum);
+          d.setDate(d.getDate() + 1);
+          var naechster = d.toISOString().slice(0,10);
+          ljStart = naechster < (yr+'-04-01') ? naechster : yr+'-04-01';
+          ljBonus = 0;
+        }
       } else {
         // Vorjahr noch nicht erfüllt → Laufjahr beginnt erst ab 1.4.
         ljStart = yr + '-04-01';
@@ -1240,7 +1253,11 @@ function jabDaten(yr) {
 
     var ljGenommen = alleGenommen.filter(function(a) {
       return a.datum >= ljStart && a.datum <= ljEnde;
-    }).reduce(function(s,a){ return s+wt(a); }, 0);
+    }).reduce(function(s,a){
+      // Wenn ljStart = Datum des teilenden Indis: nur Überschuss zählen
+      if (ljBonus > 0 && a.datum === ljStart) return s + ljBonus;
+      return s + wt(a);
+    }, 0);
 
     var vjOffen = !vjAbgelaufen ? D.a.filter(function(a) {
       return a.mid === m.id &&
