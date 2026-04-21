@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v23 -->
+<!-- v24 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -345,7 +345,16 @@ function renderProfil(m){
   var gnVj=D.a.filter(function(a){return a.mid===mid&&a.status==='genommen'&&a.datum<=vjEnd;}).reduce(function(s,a){return s+wt(a);},0);
   var gutVj=D.g.filter(function(g){return g.mid===mid&&g.datum<=vjEnd;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
   var standVj=Math.max(0,(parseFloat(m.kontingent)||3)+gutVj-gnVj);
-  // gnJahr wird weiter unten als ljGn berechnet
+  // Genommen im Laufjahr (ab 04-01 oder ab 01-01 wenn Vorjahr erfüllt)
+  var vjInVjKarte = D.a.filter(function(a){
+    return a.mid===mid && a.status==='genommen' &&
+      a.datum>=(vj+'-01-01') && a.datum<=(vj+'-12-31');
+  }).reduce(function(s,a){return s+wt(a);},0);
+  var gnJahrStart = vjInVjKarte >= 3 ? yr+'-01-01' : yr+'-04-01';
+  var gnJahr = D.a.filter(function(a){
+    return a.mid===mid && a.status==='genommen' &&
+      a.datum>=gnJahrStart && a.datum<=(yr+'-12-31');
+  }).reduce(function(s,a){return s+wt(a);},0);
 
   document.getElementById('p-karten').innerHTML=
     karte('Stand 31.12.'+(yr-1),fNum(standVj),'gld')+
