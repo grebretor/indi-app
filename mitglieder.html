@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor</title>
-<!-- v26 -->
+<!-- v27 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -347,14 +347,10 @@ function renderProfil(m){
   var gutVj=D.g.filter(function(g){return g.mid===mid&&g.datum<=vjEnd;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
   var standVj=Math.max(0,(parseFloat(m.kontingent)||3)+gutVj-gnVj);
   // Genommen im Laufjahr (ab 04-01 oder ab 01-01 wenn Vorjahr erfüllt)
-  var vjInVjKarte = D.a.filter(function(a){
-    return a.mid===mid && a.status==='genommen' &&
-      a.datum>=(vj+'-01-01') && a.datum<=(vj+'-12-31');
-  }).reduce(function(s,a){return s+wt(a);},0);
-  var gnJahrStart = vjInVjKarte >= 3 ? yr+'-01-01' : yr+'-04-01';
+  // Genommen Laufjahr für Karte (alle ab 01.01., wird später durch ljGnAnzeige ersetzt)
   var gnJahr = D.a.filter(function(a){
     return a.mid===mid && a.status==='genommen' &&
-      a.datum>=gnJahrStart && a.datum<=(yr+'-12-31');
+      a.datum>=(yr+'-01-01') && a.datum<=(yr+'-12-31');
   }).reduce(function(s,a){return s+wt(a);},0);
 
   document.getElementById('p-karten').innerHTML=
@@ -377,6 +373,11 @@ function renderProfil(m){
     return a.mid===mid && a.status==='genommen';
   }).sort(function(a,b){ return a.datum<b.datum?-1:1; });
 
+  // Anzeige: nur im Vorjahr selbst
+  var vjGnAnzeige = alleGn.filter(function(a){
+    return a.datum>=vjStart && a.datum<=(vj+'-12-31');
+  }).reduce(function(s,a){return s+wt(a);},0);
+  // Pflicht: inkl. Nachholzeit bis 31.03.
   var vjGn = alleGn.filter(function(a){
     return a.datum>=vjStart && a.datum<=vjEnde;
   }).reduce(function(s,a){return s+wt(a);},0);
@@ -407,6 +408,11 @@ function renderProfil(m){
     }
   }
 
+  // Anzeige: alle genommenen Indis des Laufjahres (1.1.-31.12.)
+  var ljGnAnzeige = alleGn.filter(function(a){
+    return a.datum>=(yr+'-01-01') && a.datum<=ljEnde;
+  }).reduce(function(s,a){return s+wt(a);},0);
+  // Pflicht: ab dynamischem ljStart (Jan-März ggf. zum Vorjahr zugeordnet)
   var ljGn = alleGn.filter(function(a){
     return a.datum>=ljStart && a.datum<=ljEnde;
   }).reduce(function(s,a){return s+wt(a);},0);
@@ -422,9 +428,9 @@ function renderProfil(m){
     '<span class="badge bp">'+fNum(ljRest)+' noch offen</span>';
 
   document.getElementById('p-jab').innerHTML=
-    jabItem((yr-1)+' genommen',fNum(vjGn)+' / '+PFLICHT)+
+    jabItem((yr-1)+' genommen',fNum(vjGnAnzeige)+' / '+PFLICHT)+
     jabItem((yr-1)+' Pflicht',vjRestHtml)+
-    jabItem(yr+' genommen',fNum(ljGn)+' / '+PFLICHT)+
+    jabItem(yr+' genommen',fNum(ljGnAnzeige)+' / '+PFLICHT)+
     jabItem(yr+' Pflicht',ljRestHtml);
 
   // Naechste Indis
@@ -447,7 +453,7 @@ function renderProfil(m){
 
   // Alle Indis des Jahres
   var alle=D.a.filter(function(a){
-    return a.mid===mid&&a.datum>=ljStart&&a.datum<=ljEnde;
+    return a.mid===mid&&a.datum>=(yr+'-01-01')&&a.datum<=ljEnde;
   }).sort(function(a,b){return a.datum<b.datum?1:-1;});
   var antEl=document.getElementById('p-ant');
   if(!alle.length){
