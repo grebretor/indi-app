@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1177,34 +1178,74 @@ function jabDaten(yr) {
   var vj = yr - 1;
   var vjStart = vj + '-01-01';
   var vjEnde  = yr + '-03-31';
-  var ljStart = yr + '-04-01';  // erst ab April - Jan-März zählen zum Vorjahr
   var ljEnde  = yr + '-12-31';
   var vjAbgelaufen = heute > vjEnde;
 
   return D.m.map(function(m) {
-    var genommen = D.a.filter(function(a) {
+    var alleGenommen = D.a.filter(function(a) {
       return a.mid === m.id && a.status === 'genommen';
-    });
+    }).sort(function(a,b){ return a.datum < b.datum ? -1 : 1; });
 
-    var vjGenommen = genommen.filter(function(a) {
+    // Vorjahres-Indis: alle genommenen vom 1.1.(vj) bis 31.3.(yr)
+    var vjGenommenList = alleGenommen.filter(function(a) {
       return a.datum >= vjStart && a.datum <= vjEnde;
-    }).reduce(function(s,a) { return s + wt(a); }, 0);
+    });
+    var vjGenommen = vjGenommenList.reduce(function(s,a){ return s+wt(a); }, 0);
 
-    var ljGenommen = genommen.filter(function(a) {
+    // Laufjahr-Start: dynamisch je nach Vorjahres-Erfüllung
+    // - Wenn Vorjahr bereits in (vj) erfüllt: ljStart = yr-01-01
+    // - Sonst: Datum des Indis das die Pflicht erfüllt + 1 Tag
+    //   (spätestens yr-04-01)
+    var vjInVj = alleGenommen.filter(function(a){
+      return a.datum >= vjStart && a.datum <= (vj+'-12-31');
+    }).reduce(function(s,a){ return s+wt(a); }, 0);
+
+    var ljStart;
+    if (vjInVj >= PFLICHT) {
+      // Vorjahr bereits im Vorjahr erfüllt → Laufjahr beginnt ab 1.1.
+      ljStart = yr + '-01-01';
+    } else {
+      // Finde den Indi der die Vorjahres-Pflicht erfüllt (in Jan-März)
+      var kum = vjInVj;
+      var erfuelltDatum = null;
+      for (var i=0; i<vjGenommenList.length; i++) {
+        var a = vjGenommenList[i];
+        if (a.datum > (vj+'-12-31')) {  // nur Jan-März des Laufjahres
+          kum += wt(a);
+          if (kum >= PFLICHT) {
+            erfuelltDatum = a.datum;
+            break;
+          }
+        }
+      }
+      if (erfuelltDatum) {
+        // Tag nach Erfüllung, spätestens 1.4.
+        var d = new Date(erfuelltDatum);
+        d.setDate(d.getDate() + 1);
+        var naechster = d.toISOString().slice(0,10);
+        var grenze = yr + '-04-01';
+        ljStart = naechster < grenze ? naechster : grenze;
+      } else {
+        // Vorjahr noch nicht erfüllt → Laufjahr beginnt erst ab 1.4.
+        ljStart = yr + '-04-01';
+      }
+    }
+
+    var ljGenommen = alleGenommen.filter(function(a) {
       return a.datum >= ljStart && a.datum <= ljEnde;
-    }).reduce(function(s,a) { return s + wt(a); }, 0);
+    }).reduce(function(s,a){ return s+wt(a); }, 0);
 
     var vjOffen = !vjAbgelaufen ? D.a.filter(function(a) {
       return a.mid === m.id &&
         (a.status === 'beantragt' || a.status === 'genehmigt') &&
         a.datum >= (yr + '-01-01') && a.datum <= vjEnde;
-    }).reduce(function(s,a) { return s + wt(a); }, 0) : 0;
+    }).reduce(function(s,a){ return s+wt(a); }, 0) : 0;
 
     var ljOffen = D.a.filter(function(a) {
       return a.mid === m.id &&
         (a.status === 'beantragt' || a.status === 'genehmigt') &&
         a.datum >= heute && a.datum <= ljEnde;
-    }).reduce(function(s,a) { return s + wt(a); }, 0);
+    }).reduce(function(s,a){ return s+wt(a); }, 0);
 
     return {
       id: m.id,
@@ -1216,7 +1257,8 @@ function jabDaten(yr) {
       vjAbgelaufen: vjAbgelaufen,
       ljGenommen: ljGenommen,
       ljOffen: ljOffen,
-      ljRest: Math.max(0, PFLICHT - ljGenommen)
+      ljRest: Math.max(0, PFLICHT - ljGenommen),
+      ljStart: ljStart
     };
   }).sort(function(a,b) {
     var vo = ['S','A','T','B'];
@@ -1224,6 +1266,7 @@ function jabDaten(yr) {
     return vs !== 0 ? vs : a.name.localeCompare(b.name);
   });
 }
+
 
 function rJab() {
   var el = document.getElementById('jab-yr');
