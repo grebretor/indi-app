@@ -1188,7 +1188,12 @@ function jabDaten(yr) {
       return a.mid === m.id && a.status === 'genommen';
     }).sort(function(a,b){ return a.datum < b.datum ? -1 : 1; });
 
-    // Vorjahres-Indis: alle genommenen vom 1.1.(vj) bis 31.3.(yr)
+    // Vorjahres-Indis für ANZEIGE: nur im Vorjahr selbst (1.1.(vj) bis 31.12.(vj))
+    var vjGenommenAnzeige = alleGenommen.filter(function(a) {
+      return a.datum >= vjStart && a.datum <= (vj+'-12-31');
+    }).reduce(function(s,a){ return s+wt(a); }, 0);
+
+    // Vorjahres-Indis für PFLICHT: inkl. Nachholzeit bis 31.3.(yr)
     var vjGenommenList = alleGenommen.filter(function(a) {
       return a.datum >= vjStart && a.datum <= vjEnde;
     });
@@ -1253,9 +1258,10 @@ function jabDaten(yr) {
       id: m.id,
       name: m.nachname + ', ' + m.vorname,
       stimme: m.stimme,
-      vjGenommen: vjGenommen,
+      vjGenommen: vjGenommenAnzeige,  // Anzeige: nur Vorjahr selbst
+      vjGenommenPflicht: vjGenommen,      // Pflicht: inkl. Jan-März Folgejahr
       vjOffen: vjOffen,
-      vjRest: Math.max(0, PFLICHT - vjGenommen),
+      vjRest: Math.max(0, PFLICHT - vjGenommen),  // bleibt auf Pflicht-Basis
       vjAbgelaufen: vjAbgelaufen,
       ljGenommen: ljGenommen,
       ljOffen: ljOffen,
