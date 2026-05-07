@@ -151,7 +151,7 @@ textarea{min-height:80px;resize:vertical;}
 <header>
   <div>
     <h1>Indi-Verwaltung &middot; RIAS Kammerchor</h1>
-    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.28</div>
+    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.1</div>
   </div>
   <span id="yr" style="font-size:24px;font-weight:300;opacity:.8"></span>
 </header>
@@ -362,6 +362,7 @@ textarea{min-height:80px;resize:vertical;}
   </div>
   <div class="fg"><label>Bemerkung</label><textarea id="e-bem" rows="2"></textarea></div>
   <div class="mf">
+    <button class="btn btn-r" onclick="editDel()">Löschen</button>
     <button class="btn btn-g" onclick="cm('m-edit')">Abbrechen</button>
     <button class="btn btn-p" onclick="subEdit()">Speichern</button>
   </div>
@@ -433,8 +434,7 @@ textarea{min-height:80px;resize:vertical;}
 // =====================================================================
 var SUPABASE_URL  = 'https://lqfoybhgtlyvnbtuwggi.supabase.co';        // z.B. https://xyz.supabase.co
 var SUPABASE_KEY  = 'sb_publishable_MJUP_gLZccCY-UUlF1p7oQ_JB1hta_g';  // aus Supabase Projekteinstellungen
-var APP_PASSWORD  = 'kl@usdieter240405';                               // gewuenschtes Login-Passwort
-// =====================================================================
+var APP_PASSWORD  = 'kl@usdieter240405';                               // gewuenschtes Login-Passwort// =====================================================================
 
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var D  = {m:[],a:[],s:[],g:[],yr:new Date().getFullYear()};
@@ -708,8 +708,9 @@ function rAnt() {
       act='<button class="ab" onclick="openEdit(\''+a.id+'\')">&#9998;</button>'+
           '<button class="ab ap" onclick="stSt(\''+a.id+'\',\'beantragt\')">Zurücknehmen</button>'+
           '<button class="ab ad" onclick="delAnt(\''+a.id+'\')">Löschen</button>';
-    else act='<button class="ab" onclick="openEdit(\''+a.id+'\')">&#9998;</button>'+
-          '<button class="ab ad" onclick="delAnt(\''+a.id+'\')">Löschen</button>';
+    else
+      act='<button class="ab" onclick="openEdit(\''+a.id+'\')">&#9998;</button>'+
+          '<button class="ab ar" onclick="stSt(\''+a.id+'\',\'abgelehnt\')">Ablehnen</button>';
     return '<tr><td>'+mNm(a.mid)+'</td><td>'+fd(a.datum)+'</td>'+
       '<td style="font-size:11px;color:var(--txd)">'+umfangLabel(a)+'</td>'+
       '<td style="color:var(--txm)">'+fd(a.ba)+'</td>'+
@@ -1129,6 +1130,25 @@ async function subEdit() {
   render(); cm('m-edit'); toast('Gespeichert','ok');
 }
 
+function editDel() {
+  var id = document.getElementById('e-id').value;
+  cm('m-edit');
+  // Sicherheitsrückfrage nutzen
+  var a = D.a.find(function(x){return x.id===id;});
+  var m = a ? mById(a.mid) : null;
+  var info = (m?m.vorname+' '+m.nachname:'?')+(a?' - '+fd(a.datum):'');
+  document.getElementById('ok-t').textContent = 'Antrag löschen?';
+  document.getElementById('ok-m').textContent = info+' wird unwiderruflich gelöscht.';
+  document.getElementById('ok-b').onclick = async function(){
+    var {error} = await sb.from('antraege').delete().eq('id',id);
+    if (error){toast('Fehler: '+error.message,'er');return;}
+    logP('Antrag gelöscht', info);
+    D.a = D.a.filter(function(x){return x.id!==id;});
+    render(); cm('m-ok'); toast('Gelöscht');
+  };
+  om('m-ok');
+}
+
 function openGut(mid){
   fillSel();var e=document.getElementById('g-mid');if(e)e.value=mid;
   document.getElementById('g-anz').value=1;
@@ -1509,7 +1529,7 @@ if (sessionStorage.getItem('auth')==='1') {
 var nbDb = document.getElementById('nb-db');
 if (nbDb) {
   nbDb.onclick = function() {
-    window.open(SUPABASE_URL.replace('.supabase.co', '.supabase.co') + '/project/_/editor', '_blank');
+    window.open('https://supabase.com/dashboard/project/lqfoybhgtlyvnbtuwggi/editor', '_blank');
   };
 }
 </script>
