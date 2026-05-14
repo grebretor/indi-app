@@ -151,7 +151,7 @@ textarea{min-height:80px;resize:vertical;}
 <header>
   <div>
     <h1>Indi-Verwaltung &middot; RIAS Kammerchor</h1>
-    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.1</div>
+    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.2</div>
   </div>
   <span id="yr" style="font-size:24px;font-weight:300;opacity:.8"></span>
 </header>
@@ -184,6 +184,7 @@ textarea{min-height:80px;resize:vertical;}
     <button class="mob-nb" id="mnb-jab"  onclick="go('jab');toggleMenu()">Jahresabschluss</button>
     <div style="border-top:1px solid var(--brd);display:flex;gap:0">
       <button class="mob-nb" onclick="csvEx();toggleMenu()" style="color:var(--gld)">CSV</button>
+      <button class="mob-nb" id="mob-nb-db" style="color:var(--blu)">DB</button>
       <button class="mob-nb" onclick="doLogout()" style="color:var(--txd)">Abmelden</button>
     </div>
   </div>
@@ -434,7 +435,7 @@ textarea{min-height:80px;resize:vertical;}
 // =====================================================================
 var SUPABASE_URL  = 'https://lqfoybhgtlyvnbtuwggi.supabase.co';        // z.B. https://xyz.supabase.co
 var SUPABASE_KEY  = 'sb_publishable_MJUP_gLZccCY-UUlF1p7oQ_JB1hta_g';  // aus Supabase Projekteinstellungen
-var APP_PASSWORD  = 'kl@usdieter240405';                               // gewuenschtes Login-Passwort// =====================================================================
+var APP_PASSWORD  = 'kl@usdieter240405';                               // gewuenschtes Login-Passwort// // =====================================================================
 
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var D  = {m:[],a:[],s:[],g:[],yr:new Date().getFullYear()};
@@ -578,7 +579,7 @@ function rDash() {
       }).join('')+'</tbody></table></div>';
   }
 
-  var pend=D.a.filter(function(a){return a.status==='beantragt';});
+  var pend=D.a.filter(function(a){return a.status==='beantragt';}).sort(function(a,b){return a.datum<b.datum?1:-1;});
   var el=document.getElementById('d-pend');
   if (!pend.length) { el.innerHTML='<div class="es">Keine offenen Antraege</div>'; }
   else {
@@ -1446,7 +1447,7 @@ function rKto(){
     jsc('Beantragt',c.b,'var(--amb)')+jsc('Genehmigt',c.g,'var(--grn)')+jsc('Genommen '+D.yr,gnJahr,'var(--txd)');
   var t=td();
   var vg=D.a.filter(function(a){return a.mid===_kId&&(_kF==='b'?a.datum<=t:_kF==='a'?a.datum>=t:true);})
-    .map(function(a){return {typ:'antrag',datum:a.datum,status:a.status,umfang:a.umfang,wert:wt(a),bem:a.bemerkung||''};})
+    .map(function(a){return {typ:'antrag',datum:a.datum,status:a.status,umfang:a.umfang,wert:wt(a),bem:a.bemerkung||'',abl:a.ablehnungsgrund||''};})
     .concat(D.g.filter(function(g){return g.mid===_kId&&(_kF==='b'?g.datum<=t:_kF==='a'?g.datum>=t:true);})
     .map(function(g){return {typ:'gutschrift',datum:g.datum,status:'gutschrift',umfang:'',wert:parseFloat(g.anzahl),bem:g.grund||''};}))
     .sort(function(a,b){return _kF==='a'?(a.datum<b.datum?-1:1):(a.datum<b.datum?1:-1);});
@@ -1459,7 +1460,7 @@ function rKto(){
     vg.map(function(v){
       return '<tr><td>'+fd(v.datum)+'</td>'+
         '<td><span class="badge '+(v.typ==='gutschrift'?'bg2':'bt')+'" style="font-size:10px">'+sl[v.status]+'</span></td>'+
-        '<td style="font-size:12px;color:var(--txm)">'+(v.typ==='gutschrift'?v.bem||'-':(ul[v.umfang]||'Ganzer Tag')+(v.bem?' - '+v.bem:''))+'</td>'+
+        '<td style="font-size:12px;color:var(--txm)">'+(v.typ==='gutschrift'?v.bem||'-':(v.abl?'<span style="color:var(--red)">&#9940; '+v.abl+'</span>':(ul[v.umfang]||'Ganzer Tag')+(v.bem?' - '+v.bem:'')))+'</td>'+
         '<td style="font-weight:600">'+(v.typ==='gutschrift'?'<span style="color:var(--grn)">+'+fNum(v.wert)+'</span>':'<span style="color:var(--txm)">-'+fNum(v.wert)+'</span>')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
 }
@@ -1469,7 +1470,7 @@ function kCsv(){
   var fl={g:'Gesamt',b:'Bis-heute',a:'Ab-heute'};
   var t=td();
   var vg=D.a.filter(function(a){return a.mid===_kId&&(_kF==='b'?a.datum<=t:_kF==='a'?a.datum>=t:true);})
-    .map(function(a){return {typ:'antrag',datum:a.datum,status:a.status,umfang:a.umfang,wert:wt(a),bem:a.bemerkung||''};})
+    .map(function(a){return {typ:'antrag',datum:a.datum,status:a.status,umfang:a.umfang,wert:wt(a),bem:a.bemerkung||'',abl:a.ablehnungsgrund||''};})
     .concat(D.g.filter(function(g){return g.mid===_kId&&(_kF==='b'?g.datum<=t:_kF==='a'?g.datum>=t:true);})
     .map(function(g){return {typ:'gutschrift',datum:g.datum,status:'gutschrift',umfang:'',wert:parseFloat(g.anzahl),bem:g.grund||''};}))
     .sort(function(a,b){return a.datum<b.datum?-1:1;});
@@ -1529,6 +1530,13 @@ if (sessionStorage.getItem('auth')==='1') {
 var nbDb = document.getElementById('nb-db');
 if (nbDb) {
   nbDb.onclick = function() {
+    window.open('https://supabase.com/dashboard/project/lqfoybhgtlyvnbtuwggi/editor', '_blank');
+  };
+}
+var mobNbDb = document.getElementById('mob-nb-db');
+if (mobNbDb) {
+  mobNbDb.onclick = function() {
+    toggleMenu();
     window.open('https://supabase.com/dashboard/project/lqfoybhgtlyvnbtuwggi/editor', '_blank');
   };
 }
