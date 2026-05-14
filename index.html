@@ -579,7 +579,7 @@ function rDash() {
       }).join('')+'</tbody></table></div>';
   }
 
-  var pend=D.a.filter(function(a){return a.status==='beantragt';}).sort(function(a,b){return a.datum<b.datum?1:-1;});
+  var pend=D.a.filter(function(a){return a.status==='beantragt';}).sort(function(a,b){return a.datum<b.datum?-1:1;});
   var el=document.getElementById('d-pend');
   if (!pend.length) { el.innerHTML='<div class="es">Keine offenen Antraege</div>'; }
   else {
