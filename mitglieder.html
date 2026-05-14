@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Meine Indis - RIAS Kammerchor</title>
-<!-- v31 -->
+<title>Meine Indis - RIAS Kammerchor (v1.2)</title>
+<!-- v32 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -244,7 +244,7 @@ select:focus{border-color:var(--gld);}
 // =====================================================================
 var SUPABASE_URL  = 'https://lqfoybhgtlyvnbtuwggi.supabase.co';        // z.B. https://xyz.supabase.co
 var SUPABASE_KEY  = 'sb_publishable_MJUP_gLZccCY-UUlF1p7oQ_JB1hta_g';  // aus Supabase Projekteinstellungen
-=====================================================================
+// =====================================================================
 
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var D  = {m:[],a:[],s:[],g:[],yr:new Date().getFullYear()};
@@ -271,7 +271,9 @@ async function laden() {
       zeigeProfil();
     }
   } catch(e) {
-    document.querySelector('.select-box p').textContent = 'Fehler beim Laden: '+e.message;
+    var p = document.querySelector('.select-box p');
+    if (p) p.innerHTML = '<span style="color:var(--red)">&#10007; Fehler: '+e.message+'</span>';
+    console.error('laden() Fehler:', e);
   }
 }
 
