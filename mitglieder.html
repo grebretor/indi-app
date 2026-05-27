@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor (v1.2)</title>
-<!-- v32 -->
+<!-- v34 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -100,12 +100,57 @@ select:focus{border-color:var(--gld);}
 .check-row{margin-bottom:10px;}
 .check-inp{display:block;width:100%;background:var(--sur);border:1.5px solid var(--brd);color:var(--txt);font-family:inherit;font-size:15px;padding:10px 13px;border-radius:3px;box-sizing:border-box;outline:none;-webkit-appearance:none;appearance:none;}
 @media(max-width:500px){
+  /* Startseite */
+  .select-box{padding:20px 16px;margin-top:12px;}
+  .select-box h2{font-size:22px;margin-bottom:4px;}
+  .select-box p{font-size:13px;margin-bottom:16px;}
+  select{font-size:17px;padding:13px 14px;max-width:100%;}
+  .btn{padding:14px 18px;font-size:13px;}
+
+  /* Header */
+  header h1{font-size:16px;}
+  header .sub{font-size:10px;}
+
+  /* Profil */
+  .profil-name{font-size:22px;}
+  .profil-header{margin:16px 0 14px;}
+
+  /* Karten: 2 Spalten statt 3 */
   .karten{grid-template-columns:1fr 1fr;}
-  .jah-grid{grid-template-columns:repeat(2,1fr);}
+  .karte{padding:12px;}
+  .karte-wert{font-size:24px;}
+  .karte-label{font-size:8px;}
+
+  /* Jahresübersicht */
   .jab-grid{grid-template-columns:1fr;}
   .jab-item:nth-child(odd){border-right:none;}
-  .jab-item{border-bottom:1px solid var(--brd);}
+  .jab-item{border-bottom:1px solid var(--brd);padding:12px 14px;}
+
+  /* Kalender: 2 Spalten */
+  .jah-grid{grid-template-columns:repeat(2,1fr);}
+
+  /* Tabellen: kompakter */
+  td{padding:9px 8px;font-size:12px;}
+  th{padding:8px;font-size:9px;}
+
+  /* Sections */
+  .section-title{font-size:9px;padding:10px 12px;}
+
+  /* Kontoauszug Modal */
+  #kto-stats{gap:6px;}
+
+  /* Anderes-Mitglied Button */
+  .btn-sm{width:100%;text-align:center;}
+
+  /* Termine abfragen */
   .check-grid{grid-template-columns:1fr;}
+}
+
+/* Extra klein (iPhone SE etc.) */
+@media(max-width:380px){
+  .karten{grid-template-columns:1fr;}
+  .profil-name{font-size:20px;}
+  .karte-wert{font-size:20px;}
 }
 .btn-step{width:100%;text-align:center;margin-bottom:10px;padding:13px 18px;font-size:12px;display:block;}
 .step-nr{opacity:.6;margin-right:4px;}
@@ -132,7 +177,7 @@ select:focus{border-color:var(--gld);}
 <header>
   <div>
     <h1>Meine Indis</h1>
-    <div class="sub">RIAS Kammerchor Berlin &middot; Version 1.2</div>
+    <div class="sub">RIAS Kammerchor Berlin &middot; Version 1.4</div>
   </div>
   <span id="yr-label" style="font-size:22px;font-weight:300;opacity:.8"></span>
 </header>
@@ -143,11 +188,14 @@ select:focus{border-color:var(--gld);}
   <div class="select-box">
     <h2>Willkommen</h2>
     <p>Bitte deinen Namen auswählen um deine Indi-Übersicht zu sehen.</p>
-    <p style="font-size:10px;color:var(--brdl);margin-top:8px;letter-spacing:.1em">Version 1.2</p>
-    <select id="m-sel">
-      <option value="">-- Name auswählen --</option>
-    </select>
-    <button class="btn" onclick="zeigeProfil()">Anzeigen</button>
+    <p style="font-size:10px;color:var(--brdl);margin-top:8px;letter-spacing:.1em">Version 1.4</p>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txd);margin-bottom:8px;text-align:left">Dein Name</label>
+      <select id="m-sel" style="text-align:left">
+        <option value="">-- Name auswählen --</option>
+      </select>
+    </div>
+    <button class="btn" onclick="zeigeProfil()" style="width:100%;text-align:center;display:block">Anzeigen &#8594;</button>
   </div>
 </div>
 
@@ -182,6 +230,11 @@ select:focus{border-color:var(--gld);}
       <input type="hidden" id="check-umf" value="ganz">
       <button class="btn btn-step btn-pruef" onclick="checkTermin()">Prüfen</button>
       <div id="check-result" style="margin-top:14px;display:none"></div>
+      <div id="ant-btn-wrap" style="display:none;margin-top:10px">
+        <button class="btn btn-step btn-pruef" onclick="openAntragStellen()" style="width:100%;text-align:center;font-size:13px">
+          4. Antrag stellen
+        </button>
+      </div>
     </div>
   </div>
 
@@ -644,13 +697,16 @@ function checkTermin() {
   }
 
   res.style.display = 'block';
+  var wrap = document.getElementById('ant-btn-wrap');
   if (meldungen.length === 0) {
     res.innerHTML = '<div style="background:var(--grnd);border:1px solid var(--grn);border-radius:4px;padding:12px 16px;color:var(--grn);font-size:13px">' +
       '&#10003; <b>Termin frei</b> &ndash; Kein Sperrtag, keine Kollision gefunden.</div>';
+    if (wrap) wrap.style.display = 'block';
   } else {
     res.innerHTML = meldungen.map(function(msg) {
       return '<div style="background:var(--redd);border:1px solid var(--red);border-radius:4px;padding:12px 16px;color:var(--red);font-size:13px;margin-bottom:8px">' + msg + '</div>';
     }).join('');
+    if (wrap) wrap.style.display = 'none';
   }
 }
 
@@ -894,8 +950,101 @@ function kCsvMit() {
 }
 
 
+function openAntragStellen() {
+  var mid = sessionStorage.getItem('mid') || _aktivMid || '';
+  var m = mid ? D.m.find(function(x){return x.id===mid;}) : null;
+  if (!m) { toast('Bitte zuerst deinen Namen auswählen.','er'); return; }
+
+  var dat = document.getElementById('check-dat').value;
+  var umf = document.getElementById('check-umf').value;
+  if (!dat) { toast('Bitte zuerst ein Datum wählen.','er'); return; }
+
+  var ul2 = {ganz:'Ganzer Tag', erste:'Erster Dienst', zweite:'Zweiter Dienst'};
+  var dp = dat.split('-');
+  var wt2 = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+  var datStr = wt2[dObj.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0];
+
+  document.getElementById('ant-best-info').innerHTML =
+    '<div><span style="color:var(--txd);font-size:11px;letter-spacing:.1em;text-transform:uppercase">Mitglied</span><br><strong>'+m.vorname+' '+m.nachname+'</strong></div>' +
+    '<div style="margin-top:8px"><span style="color:var(--txd);font-size:11px;letter-spacing:.1em;text-transform:uppercase">Datum</span><br><strong>'+datStr+'</strong></div>' +
+    '<div style="margin-top:8px"><span style="color:var(--txd);font-size:11px;letter-spacing:.1em;text-transform:uppercase">Umfang</span><br><strong>'+(ul2[umf]||'Ganzer Tag')+'</strong></div>';
+
+  document.getElementById('m-ant-best').style.display = 'flex';
+}
+
+function closeAntragBest() {
+  document.getElementById('m-ant-best').style.display = 'none';
+}
+
+async function submitAntrag() {
+  var mid = sessionStorage.getItem('mid') || _aktivMid || '';
+  var m = mid ? D.m.find(function(x){return x.id===mid;}) : null;
+  if (!m) return;
+
+  var dat = document.getElementById('check-dat').value;
+  var umf = document.getElementById('check-umf').value;
+
+  // uid Funktion
+  var id = Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,10);
+  var heute = new Date().toISOString().slice(0,10);
+
+  try {
+    var res = await sb.from('antraege').insert({
+      id: id,
+      mitglied_id: mid,
+      name: m.nachname+', '+m.vorname,
+      datum: dat,
+      umfang: umf,
+      bemerkung: '',
+      beantragt_am: heute,
+      status: 'beantragt'
+    });
+    if (res.error) throw res.error;
+
+    closeAntragBest();
+    // Antrag-Button und Ergebnis zurücksetzen
+    document.getElementById('check-result').style.display = 'none';
+    document.getElementById('ant-btn-wrap').style.display = 'none';
+    document.getElementById('check-dat').value = '';
+    document.getElementById('btn-dat-lbl').textContent = 'Datum wählen';
+    var btnDat = document.getElementById('btn-dat');
+    btnDat.style.borderColor = ''; btnDat.style.color = ''; btnDat.style.fontWeight = '';
+
+    // Erfolgs-Meldung
+    document.getElementById('check-result').style.display = 'block';
+    document.getElementById('check-result').innerHTML =
+      '<div style="background:var(--grnd);border:1px solid var(--grn);border-radius:4px;padding:14px 16px;color:var(--grn);font-size:13px;line-height:1.7">' +
+      '&#10003; <b>Antrag eingereicht!</b><br>' +
+      '<span style="font-size:12px;color:var(--txm)">Dein Antrag wurde übermittelt und wird von der Verwaltung bearbeitet.</span></div>';
+
+    // Lokale Daten aktualisieren
+    D.a.push({id:id, mid:mid, mitglied_id:mid, datum:dat, umfang:umf,
+              bemerkung:'', ba:heute, beantragt_am:heute, status:'beantragt', anzahl:null});
+
+  } catch(e) {
+    closeAntragBest();
+    toast('Fehler beim Einreichen: '+e.message,'er');
+  }
+}
+
+
 laden();
 </script>
+<!-- Modal: Antrag bestätigen -->
+<div id="m-ant-best" style="display:none;position:fixed;inset:0;background:rgba(26,23,20,.55);z-index:300;align-items:flex-end;justify-content:center">
+  <div style="background:var(--sur);border-top:3px solid var(--gld);padding:24px 20px;width:100%;max-width:480px;border-radius:12px 12px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.15)">
+    <h2 style="font-size:20px;font-weight:400;color:var(--gld);margin-bottom:16px">Antrag bestätigen</h2>
+    <div id="ant-best-info" style="background:var(--sur2);border:1px solid var(--brd);border-radius:4px;padding:14px 16px;margin-bottom:16px;font-size:14px;line-height:1.8"></div>
+    <p style="font-size:12px;color:var(--txd);margin-bottom:18px">Der Antrag wird als <strong>offen</strong> eingetragen und muss von der Verwaltung genehmigt werden.</p>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeAntragBest()" style="flex:1;background:none;border:1px solid var(--brdl);color:var(--txm);font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:13px;cursor:pointer;border-radius:3px">Abbrechen</button>
+      <button onclick="submitAntrag()" style="flex:1;background:var(--gld);border:1px solid var(--gld);color:#fff;font-family:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:13px;cursor:pointer;border-radius:3px;font-weight:600">Verbindlich beantragen</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- Modal: Kontoauszug -->
 <div id="m-kto" style="display:none;position:fixed;inset:0;background:rgba(26,23,20,.55);z-index:200;align-items:flex-start;justify-content:center">
   <div style="background:var(--sur);border-top:3px solid var(--gld);padding:20px;width:100%;max-width:600px;max-height:96vh;overflow-y:auto;border-radius:0 0 12px 12px;box-shadow:0 4px 24px rgba(0,0,0,.15)">
