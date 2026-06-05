@@ -151,7 +151,7 @@ textarea{min-height:80px;resize:vertical;}
 <header>
   <div>
     <h1>Indi-Verwaltung &middot; RIAS Kammerchor</h1>
-    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.2</div>
+    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.3</div>
   </div>
   <span id="yr" style="font-size:24px;font-weight:300;opacity:.8"></span>
 </header>
@@ -197,7 +197,13 @@ textarea{min-height:80px;resize:vertical;}
   <div class="stats" id="stats"></div>
   <div class="dash-grid">
     <div class="card dash-heute"><h3 id="d-heute-title">Indis heute</h3><div id="d-heute"></div></div>
-    <div class="card dash-offen"><h3>Offene Anträge</h3><div id="d-pend"></div></div>
+    <div class="card dash-offen">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="margin-bottom:0">Offene Anträge</h3>
+        <button onclick="kopiereOffene()" class="ab" style="font-size:10px;border-color:var(--gld);color:var(--gld)" title="Text für Büromeldung kopieren">&#128203; Kopieren</button>
+      </div>
+      <div id="d-pend"></div>
+    </div>
     <div class="card dash-voice"><h3>Kontingent je Stimmgruppe</h3><div id="d-voice"></div></div>
     <div class="card dash-gut"><h3>Gutschriften</h3><div id="d-gut"></div></div>
   </div>
@@ -435,7 +441,8 @@ textarea{min-height:80px;resize:vertical;}
 // =====================================================================
 var SUPABASE_URL  = 'https://lqfoybhgtlyvnbtuwggi.supabase.co';        // z.B. https://xyz.supabase.co
 var SUPABASE_KEY  = 'sb_publishable_MJUP_gLZccCY-UUlF1p7oQ_JB1hta_g';  // aus Supabase Projekteinstellungen
-var APP_PASSWORD  = 'kl@usdieter240405';                               // gewuenschtes Login-Passwort// // =====================================================================
+var APP_PASSWORD  = 'kl@usdieter240405';                               // gewuenschtes Login-Passwort
+// =====================================================================
 
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var D  = {m:[],a:[],s:[],g:[],yr:new Date().getFullYear()};
@@ -1516,6 +1523,64 @@ function komCsv() {
   });
   dlFile(csvBom()+header+'\r\n'+rows.join('\r\n'),'Kommende-Indis-'+td()+'.csv','text/csv');
   toast('CSV exportiert','ok');
+}
+
+function kopiereOffene() {
+  var pend = D.a.filter(function(a){ return a.status==='beantragt'; })
+    .sort(function(a,b){ return a.datum<b.datum?-1:1; });
+  if (!pend.length) { toast('Keine offenen Anträge','er'); return; }
+
+  var wt2 = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  var ul  = {ganz:'Ganzer Tag', erste:'Erster Dienst', zweite:'Zweiter Dienst'};
+  var vl  = {S:'Sopran', A:'Alt', T:'Tenor', B:'Bass'};
+
+  var heute = td();
+  var hp = heute.split('-');
+  var datHeute = hp[2]+'.'+hp[1]+'.'+hp[0];
+
+  var zeilen = pend.map(function(a){
+    var m = mById(a.mid);
+    var dp = a.datum.split('-');
+    var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    var wtag = wt2[dObj.getDay()];
+    var datStr = wtag+', '+dp[2]+'.'+dp[1]+'.'+dp[0];
+    var name  = m ? m.vorname+' '+m.nachname : '?';
+    var stimme = m ? (vl[m.stimme]||m.stimme) : '';
+    var umfStr = a.umfang==='sammlung'
+      ? 'Sammelindi x'+fNum(a.anzahl||2)
+      : (ul[a.umfang]||'Ganzer Tag');
+    return '- '+name+' ('+stimme+') – '+datStr+' – '+umfStr;
+  });
+
+  var text =
+    'folgende neue Indiwünsche haben mich erreicht (Stand '+datHeute+'):\n\n' +
+    zeilen.join('\n') +
+    '\n\nIch freue mich über eine Bestätigung.';
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){
+      toast('Text kopiert – bereit zum Einfügen ✓','ok');
+    }).catch(function(){
+      fallbackKopieren(text);
+    });
+  } else {
+    fallbackKopieren(text);
+  }
+}
+
+function fallbackKopieren(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    toast('Text kopiert – bereit zum Einfügen ✓','ok');
+  } catch(e) {
+    toast('Kopieren fehlgeschlagen – bitte manuell kopieren','er');
+  }
+  document.body.removeChild(ta);
 }
 
 // Init
