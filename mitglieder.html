@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor (v1.2)</title>
-<!-- v38 -->
+<!-- v39 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -1019,61 +1019,54 @@ function checkStatusAenderung(mid) {
   var t = td();
   var wt2 = ['So','Mo','Di','Mi','Do','Fr','Sa'];
 
-  // Nur zukünftige + heutige Anträge berücksichtigen
+  // Alle eigenen Anträge ab heute
   var meineAntraege = D.a.filter(function(a) {
     return a.mid === mid && a.datum >= t;
   });
 
-  // Bekannte Status aus localStorage laden
-  var storKey = 'indi_status_' + mid;
-  var bekannt = {};
-  try { bekannt = JSON.parse(localStorage.getItem(storKey) || '{}'); } catch(e) { bekannt = {}; }
+  if (!meineAntraege.length) { banner.style.display = 'none'; return; }
 
-  // DEBUG - wird nach Test wieder entfernt
-  console.log('=== Indi-Check ===');
-  console.log('Meine Anträge ab heute:', meineAntraege.length);
-  meineAntraege.forEach(function(a){
-    console.log(' -', a.datum, '| Status:', a.status, '| Bekannt:', bekannt[a.id]||'(neu)');
-  });
-  console.log('localStorage:', JSON.stringify(bekannt));
+  var genehmigt = meineAntraege.filter(function(a){ return a.status === 'genehmigt'; });
+  var abgelehnt = meineAntraege.filter(function(a){ return a.status === 'abgelehnt'; });
+  var beantragt = meineAntraege.filter(function(a){ return a.status === 'beantragt'; });
 
-  // Neue Statusänderungen finden
-  var meldungen = [];
-  meineAntraege.forEach(function(a) {
-    var alterStatus = bekannt[a.id];
-    var neuerStatus = a.status;
+  var zeilen = [];
 
-    // Nur melden wenn sich Status geändert hat UND neu genehmigt/abgelehnt
-    if (alterStatus && alterStatus !== neuerStatus &&
-        (neuerStatus === 'genehmigt' || neuerStatus === 'abgelehnt')) {
-      var dp = a.datum.split('-');
-      var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
-      var datStr = wt2[dObj.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0];
-      if (neuerStatus === 'genehmigt') {
-        meldungen.push('<div style="display:flex;align-items:center;gap:8px;padding:6px 0">' +
-          '<span style="color:var(--grn);font-size:18px">&#10003;</span>' +
-          '<span>Dein Indi am <strong>'+datStr+'</strong> wurde <strong style="color:var(--grn)">genehmigt</strong>!</span></div>');
-      } else {
-        var grund = a.ablehnungsgrund ? ' ('+a.ablehnungsgrund+')' : '';
-        meldungen.push('<div style="display:flex;align-items:center;gap:8px;padding:6px 0">' +
-          '<span style="color:var(--red);font-size:18px">&#10007;</span>' +
-          '<span>Dein Indi am <strong>'+datStr+'</strong> wurde <strong style="color:var(--red)">abgelehnt</strong>'+grund+'.</span></div>');
-      }
-    }
+  genehmigt.forEach(function(a) {
+    var dp = a.datum.split('-');
+    var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    var datStr = wt2[dObj.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0];
+    zeilen.push('<div style="display:flex;align-items:center;gap:8px;padding:5px 0">' +
+      '<span style="color:var(--grn);font-size:18px">&#10003;</span>' +
+      '<span><strong>'+datStr+'</strong> – <strong style="color:var(--grn)">genehmigt</strong></span></div>');
   });
 
-  // Aktuellen Status aller zukünftigen Anträge speichern
-  var neuBekannt = {};
-  meineAntraege.forEach(function(a){ neuBekannt[a.id] = a.status; });
-  localStorage.setItem(storKey, JSON.stringify(neuBekannt));
+  abgelehnt.forEach(function(a) {
+    var dp = a.datum.split('-');
+    var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    var datStr = wt2[dObj.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0];
+    var grund = a.ablehnungsgrund ? ' ('+a.ablehnungsgrund+')' : '';
+    zeilen.push('<div style="display:flex;align-items:center;gap:8px;padding:5px 0">' +
+      '<span style="color:var(--red);font-size:18px">&#10007;</span>' +
+      '<span><strong>'+datStr+'</strong> – <strong style="color:var(--red)">abgelehnt</strong>'+grund+'</span></div>');
+  });
 
-  if (!meldungen.length) { banner.style.display = 'none'; return; }
+  beantragt.forEach(function(a) {
+    var dp = a.datum.split('-');
+    var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    var datStr = wt2[dObj.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0];
+    zeilen.push('<div style="display:flex;align-items:center;gap:8px;padding:5px 0">' +
+      '<span style="color:var(--amb);font-size:16px">&#8987;</span>' +
+      '<span><strong>'+datStr+'</strong> – <span style="color:var(--amb)">wird bearbeitet</span></span></div>');
+  });
 
   banner.style.display = 'block';
-  banner.innerHTML = '<div style="background:var(--sur);border:1px solid var(--brd);border-left:4px solid var(--gld);border-radius:3px;padding:14px 16px">' +
-    '<div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:8px">Neuigkeiten</div>' +
-    meldungen.join('') + '</div>';
+  var borderCol = genehmigt.length ? 'var(--grn)' : abgelehnt.length ? 'var(--red)' : 'var(--amb)';
+  banner.innerHTML = '<div style="background:var(--sur);border:1px solid var(--brd);border-left:4px solid '+borderCol+';border-radius:3px;padding:14px 16px">' +
+    '<div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:8px">Meine Indis ab heute</div>' +
+    zeilen.join('') + '</div>';
 }
+
 
 // ============================================================
 // GENEHMIGTE INDIS (alle Mitglieder, ab heute)
