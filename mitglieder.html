@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor (v1.2)</title>
-<!-- v36 -->
+<!-- v37 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -177,7 +177,7 @@ select:focus{border-color:var(--gld);}
 <header>
   <div>
     <h1>Meine Indis</h1>
-    <div class="sub">RIAS Kammerchor Berlin &middot; Version 1.6</div>
+    <div class="sub">RIAS Kammerchor Berlin &middot; Version 1.7</div>
   </div>
   <span id="yr-label" style="font-size:22px;font-weight:300;opacity:.8"></span>
 </header>
@@ -188,7 +188,7 @@ select:focus{border-color:var(--gld);}
   <div class="select-box">
     <h2>Willkommen</h2>
     <p>Bitte deinen Namen auswählen um deine Indi-Übersicht zu sehen.</p>
-    <p style="font-size:10px;color:var(--brdl);margin-top:8px;letter-spacing:.1em">Version 1.6</p>
+    <p style="font-size:10px;color:var(--brdl);margin-top:8px;letter-spacing:.1em">Version 1.7</p>
     <div style="margin-bottom:12px">
       <label style="display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txd);margin-bottom:8px;text-align:left">Dein Name</label>
       <select id="m-sel" style="text-align:left">
@@ -1016,38 +1016,50 @@ function checkStatusAenderung(mid) {
   var banner = document.getElementById('status-banner');
   if (!banner) return;
 
-  // Letzten Besuch aus localStorage holen
-  var key = 'indi_last_visit_' + mid;
-  var letzterBesuch = localStorage.getItem(key) || '1970-01-01T00:00:00';
+  var t = td();
+  var wt2 = ['So','Mo','Di','Mi','Do','Fr','Sa'];
 
-  // Anträge die sich seit letztem Besuch geändert haben
-  var neu = D.a.filter(function(a) {
-    return a.mid === mid &&
-      (a.status === 'genehmigt' || a.status === 'abgelehnt') &&
-      a.sa && a.sa > letzterBesuch;
+  // Nur zukünftige + heutige Anträge berücksichtigen
+  var meineAntraege = D.a.filter(function(a) {
+    return a.mid === mid && a.datum >= t;
   });
 
-  // Zeitstempel aktualisieren
-  localStorage.setItem(key, new Date().toISOString());
+  // Bekannte Status aus localStorage laden
+  var storKey = 'indi_status_' + mid;
+  var bekannt = {};
+  try { bekannt = JSON.parse(localStorage.getItem(storKey) || '{}'); } catch(e) { bekannt = {}; }
 
-  if (!neu.length) { banner.style.display = 'none'; return; }
+  // Neue Statusänderungen finden
+  var meldungen = [];
+  meineAntraege.forEach(function(a) {
+    var alterStatus = bekannt[a.id];
+    var neuerStatus = a.status;
 
-  var wt2 = ['So','Mo','Di','Mi','Do','Fr','Sa'];
-  var meldungen = neu.map(function(a) {
-    var dp = a.datum.split('-');
-    var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
-    var datStr = wt2[dObj.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0];
-    if (a.status === 'genehmigt') {
-      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0">' +
-        '<span style="color:var(--grn);font-size:18px">&#10003;</span>' +
-        '<span>Dein Indi am <strong>'+datStr+'</strong> wurde <strong style="color:var(--grn)">genehmigt</strong>!</span></div>';
-    } else {
-      var grund = a.ablehnungsgrund ? ' ('+a.ablehnungsgrund+')' : '';
-      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0">' +
-        '<span style="color:var(--red);font-size:18px">&#10007;</span>' +
-        '<span>Dein Indi am <strong>'+datStr+'</strong> wurde <strong style="color:var(--red)">abgelehnt</strong>'+grund+'.</span></div>';
+    // Nur melden wenn sich Status geändert hat UND neu genehmigt/abgelehnt
+    if (alterStatus && alterStatus !== neuerStatus &&
+        (neuerStatus === 'genehmigt' || neuerStatus === 'abgelehnt')) {
+      var dp = a.datum.split('-');
+      var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+      var datStr = wt2[dObj.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0];
+      if (neuerStatus === 'genehmigt') {
+        meldungen.push('<div style="display:flex;align-items:center;gap:8px;padding:6px 0">' +
+          '<span style="color:var(--grn);font-size:18px">&#10003;</span>' +
+          '<span>Dein Indi am <strong>'+datStr+'</strong> wurde <strong style="color:var(--grn)">genehmigt</strong>!</span></div>');
+      } else {
+        var grund = a.ablehnungsgrund ? ' ('+a.ablehnungsgrund+')' : '';
+        meldungen.push('<div style="display:flex;align-items:center;gap:8px;padding:6px 0">' +
+          '<span style="color:var(--red);font-size:18px">&#10007;</span>' +
+          '<span>Dein Indi am <strong>'+datStr+'</strong> wurde <strong style="color:var(--red)">abgelehnt</strong>'+grund+'.</span></div>');
+      }
     }
   });
+
+  // Aktuellen Status aller zukünftigen Anträge speichern
+  var neuBekannt = {};
+  meineAntraege.forEach(function(a){ neuBekannt[a.id] = a.status; });
+  localStorage.setItem(storKey, JSON.stringify(neuBekannt));
+
+  if (!meldungen.length) { banner.style.display = 'none'; return; }
 
   banner.style.display = 'block';
   banner.innerHTML = '<div style="background:var(--sur);border:1px solid var(--brd);border-left:4px solid var(--gld);border-radius:3px;padding:14px 16px">' +
