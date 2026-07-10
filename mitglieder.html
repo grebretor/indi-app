@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor (v1.2)</title>
-<!-- v34 -->
+<!-- v35 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -177,7 +177,7 @@ select:focus{border-color:var(--gld);}
 <header>
   <div>
     <h1>Meine Indis</h1>
-    <div class="sub">RIAS Kammerchor Berlin &middot; Version 1.4</div>
+    <div class="sub">RIAS Kammerchor Berlin &middot; Version 1.5</div>
   </div>
   <span id="yr-label" style="font-size:22px;font-weight:300;opacity:.8"></span>
 </header>
@@ -188,7 +188,7 @@ select:focus{border-color:var(--gld);}
   <div class="select-box">
     <h2>Willkommen</h2>
     <p>Bitte deinen Namen auswählen um deine Indi-Übersicht zu sehen.</p>
-    <p style="font-size:10px;color:var(--brdl);margin-top:8px;letter-spacing:.1em">Version 1.4</p>
+    <p style="font-size:10px;color:var(--brdl);margin-top:8px;letter-spacing:.1em">Version 1.5</p>
     <div style="margin-bottom:12px">
       <label style="display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txd);margin-bottom:8px;text-align:left">Dein Name</label>
       <select id="m-sel" style="text-align:left">
@@ -262,12 +262,6 @@ select:focus{border-color:var(--gld);}
     <div id="p-next"></div>
   </div>
 
-  <!-- Alle Indis des Jahres -->
-  <div class="section">
-    <div class="section-title">Alle Indis <span id="p-ant-yr"></span></div>
-    <div id="p-ant"></div>
-  </div>
-
   <!-- Kontoauszug-Button -->
   <div style="margin-bottom:16px">
     <button class="btn btn-p" style="width:100%;text-align:center" onclick="openKtoMit()">
@@ -295,8 +289,8 @@ select:focus{border-color:var(--gld);}
 // =====================================================================
 // KONFIGURATION - dieselben Werte wie in index.html eintragen
 // =====================================================================
-var SUPABASE_URL  = 'https://lqfoybhgtlyvnbtuwggi.supabase.co';        // z.B. https://xyz.supabase.co
-var SUPABASE_KEY  = 'sb_publishable_MJUP_gLZccCY-UUlF1p7oQ_JB1hta_g';  // aus Supabase Projekteinstellungen
+var SUPABASE_URL = 'DEINE_SUPABASE_URL';
+var SUPABASE_KEY = 'DEIN_ANON_KEY';
 // =====================================================================
 
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -424,7 +418,6 @@ function renderProfil(m){
 
   // Jahresabschluss
   document.getElementById('p-jab-yr').textContent = yr;
-  document.getElementById('p-ant-yr').textContent = yr;
   document.getElementById('p-kal-yr').textContent = yr;
   var PFLICHT=3;
   var vj=yr-1;
@@ -535,27 +528,7 @@ function renderProfil(m){
   }
 
   // Alle Indis des Jahres
-  var alle=D.a.filter(function(a){
-    return a.mid===mid&&a.datum>=(yr+'-01-01')&&a.datum<=ljEnde;
-  }).sort(function(a,b){return a.datum<b.datum?1:-1;});
-  var antEl=document.getElementById('p-ant');
-  if(!alle.length){
-    antEl.innerHTML='<div class="es">Keine Indis in '+yr+'</div>';
-  } else {
-    var bl2={
-      beantragt:'<span class="badge bp">Beantragt</span>',
-      genehmigt:'<span class="badge bg2">Genehmigt</span>',
-      genommen:'<span class="badge bt">Genommen</span>',
-      abgelehnt:'<span class="badge br2">Abgelehnt</span>'
-    };
-    antEl.innerHTML=alle.map(function(a){
-      return '<div class="ant-item">'+
-        '<div><div class="ant-datum">'+fd(a.datum)+'</div>'+
-        '<div class="ant-umfang">'+umfangLabel(a)+'</div></div>'+
-        (a.bemerkung?'<div class="ant-bem">'+a.bemerkung+'</div>':'<div class="ant-bem"></div>')+
-        (bl2[a.status]||a.status)+'</div>';
-    }).join('');
-  }
+  
 
   // Kalender
   renderKalender(mid,yr,t);
