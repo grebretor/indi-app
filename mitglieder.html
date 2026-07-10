@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor (v1.2)</title>
-<!-- v37 -->
+<!-- v38 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -1028,6 +1028,14 @@ function checkStatusAenderung(mid) {
   var storKey = 'indi_status_' + mid;
   var bekannt = {};
   try { bekannt = JSON.parse(localStorage.getItem(storKey) || '{}'); } catch(e) { bekannt = {}; }
+
+  // DEBUG - wird nach Test wieder entfernt
+  console.log('=== Indi-Check ===');
+  console.log('Meine Anträge ab heute:', meineAntraege.length);
+  meineAntraege.forEach(function(a){
+    console.log(' -', a.datum, '| Status:', a.status, '| Bekannt:', bekannt[a.id]||'(neu)');
+  });
+  console.log('localStorage:', JSON.stringify(bekannt));
 
   // Neue Statusänderungen finden
   var meldungen = [];
