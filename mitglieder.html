@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor (v1.2)</title>
-<!-- v39 -->
+<!-- v40 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -208,9 +208,6 @@ select:focus{border-color:var(--gld);}
     <button class="btn btn-sm" onclick="zurueck()">Anderes Mitglied</button>
   </div>
 
-  <!-- Status-Benachrichtigung -->
-  <div id="status-banner" style="display:none;margin-bottom:16px"></div>
-
   <!-- Kontingent-Karten -->
   <div class="karten" id="p-karten"></div>
 
@@ -261,7 +258,7 @@ select:focus{border-color:var(--gld);}
 
   <!-- Naechste Indis -->
   <div class="section">
-    <div class="section-title">Nächste Indis (ab heute)</div>
+    <div class="section-title">Meine Indis – aktueller Status</div>
     <div id="p-next"></div>
   </div>
 
@@ -389,7 +386,6 @@ function zeigeProfil(){
   document.getElementById('auswahl').style.display='none';
   document.getElementById('profil').style.display='block';
   renderProfil(m);
-  checkStatusAenderung(mid);
 }
 
 function zurueck(){
@@ -516,23 +512,40 @@ function renderProfil(m){
     jabItem(yr+' genommen',fNum(ljGnAnzeige)+' / '+PFLICHT)+
     jabItem(yr+' Pflicht',ljRestHtml);
 
-  // Naechste Indis
-  var next=D.a.filter(function(a){
-    return a.mid===mid&&a.datum>=t&&(a.status==='beantragt'||a.status==='genehmigt');
-  }).sort(function(a,b){return a.datum<b.datum?-1:1;});
-  var nextEl=document.getElementById('p-next');
-  if(!next.length){
-    nextEl.innerHTML='<div class="es">Keine bevorstehenden Indis</div>';
-  } else {
-    nextEl.innerHTML=next.map(function(a){
-      var bl={beantragt:'<span class="badge bp">Beantragt</span>',genehmigt:'<span class="badge bg2">Genehmigt</span>'};
-      return '<div class="ant-item">'+
-        '<div><div class="ant-datum">'+fd(a.datum)+'</div>'+
-        '<div class="ant-umfang">'+umfangLabel(a)+'</div></div>'+
-        (a.bemerkung?'<div class="ant-bem">'+a.bemerkung+'</div>':'<div class="ant-bem"></div>')+
-        (bl[a.status]||'')+'</div>';
-    }).join('');
-  }
+   // Naechste Indis - alle Status ab heute, farbig
+   var next=D.a.filter(function(a){
+     return a.mid===mid&&a.datum>=t&&a.status!=='genommen';
+   }).sort(function(a,b){return a.datum<b.datum?-1:1;});
+   var nextEl=document.getElementById('p-next');
+   if(!next.length){
+     nextEl.innerHTML='<div class="es">Keine bevorstehenden Indis</div>';
+   } else {
+     nextEl.innerHTML=next.map(function(a){
+       var statHtml,borderStyle='';
+       if(a.status==='genehmigt'){
+         statHtml='<div style="display:flex;align-items:center;gap:6px">'+
+           '<span style="font-size:20px;color:var(--grn)">&#10003;</span>'+
+           '<span style="font-size:12px;font-weight:600;color:var(--grn)">Genehmigt!</span></div>';
+         borderStyle='border-left:3px solid var(--grn);padding-left:10px;';
+       } else if(a.status==='abgelehnt'){
+         var grund=a.ablehnungsgrund?'<div style="font-size:11px;color:var(--red);margin-top:2px">'+a.ablehnungsgrund+'</div>':'';
+         statHtml='<div style="display:flex;align-items:center;gap:6px">'+
+           '<span style="font-size:20px;color:var(--red)">&#10007;</span>'+
+           '<span style="font-size:12px;font-weight:600;color:var(--red)">Abgelehnt</span></div>'+grund;
+         borderStyle='border-left:3px solid var(--red);padding-left:10px;';
+       } else {
+         statHtml='<div style="display:flex;align-items:center;gap:6px">'+
+           '<span style="font-size:16px;color:var(--amb)">&#8987;</span>'+
+           '<span style="font-size:12px;color:var(--amb)">Wird bearbeitet</span></div>';
+         borderStyle='border-left:3px solid var(--amb);padding-left:10px;';
+       }
+       return '<div class="ant-item" style="'+borderStyle+'">'+
+         '<div><div class="ant-datum">'+fd(a.datum)+'</div>'+
+         '<div class="ant-umfang">'+umfangLabel(a)+'</div>'+
+         (a.bemerkung?'<div style="font-size:11px;color:var(--txm);margin-top:2px">'+a.bemerkung+'</div>':'')+
+         '</div><div></div>'+statHtml+'</div>';
+     }).join('');
+   }
 
   // Alle Indis des Jahres
   
