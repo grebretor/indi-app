@@ -151,7 +151,7 @@ textarea{min-height:80px;resize:vertical;}
 <header>
   <div>
     <h1>Indi-Verwaltung &middot; RIAS Kammerchor</h1>
-    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.4</div>
+    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.5</div>
   </div>
   <span id="yr" style="font-size:24px;font-weight:300;opacity:.8"></span>
 </header>
@@ -1441,19 +1441,8 @@ function rKto(){
   var gutVj = D.g.filter(function(g){
     return g.mid===_kId && g.datum && g.datum<=vjEnd;
   }).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
-  var mKto = mById(_kId);
-  var kBase = mKto ? (mKto.kontingent===null||mKto.kontingent===undefined||mKto.kontingent===''?3:parseFloat(mKto.kontingent)) : 3;
-  // DEBUG: genaue Werte anzeigen
-  console.log('=== standVj Debug ===');
-  console.log('vjEnd:', vjEnd);
-  console.log('kBase (Kontingent):', kBase);
-  console.log('gutVj (Gutschriften bis vjEnd):', gutVj);
-  console.log('gnVj (Genommen bis vjEnd):', gnVj);
-  D.g.filter(function(g){return g.mid===_kId;}).forEach(function(g){
-    console.log('  Gutschrift:', g.datum, 'anzahl:', g.anzahl, 'included:', !!(g.datum && g.datum<=vjEnd));
-  });
-  var standVj = kBase + gutVj - gnVj;
-  console.log('standVj Ergebnis:', standVj, '(erwartet: 4.5)');
+  // Stand 31.12.: Gutschriften kumuliert (inkl. Jahreszuteilungen) minus Genommene
+  var standVj = gutVj - gnVj;
   // Genommen nur laufendes Jahr
   var yrStart = D.yr+'-01-01', yrEnd = D.yr+'-12-31';
   var gnJahr = D.a.filter(function(a){
