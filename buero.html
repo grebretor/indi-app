@@ -50,6 +50,9 @@ main{max-width:900px;margin:0 auto;padding:20px 16px;}
 .filter-bar label{font-size:11px;color:var(--txd);letter-spacing:.1em;text-transform:uppercase;}
 .btn{font-family:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:8px 14px;border:1px solid var(--brd);color:var(--txm);background:var(--sur);cursor:pointer;border-radius:var(--rad);}
 .btn:hover{background:var(--sur2);}
+header .btn{background:none;border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.85);}
+header .btn:hover{background:rgba(255,255,255,.1);}
+header .btn.aktiv{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.6);}
 .btn-csv{border-color:var(--gld);color:var(--gld);background:var(--gldd);}
 .btn-csv:hover{background:#f5e9c0;}
 
@@ -91,7 +94,7 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--txd);border-top
     <input type="password" id="pw-inp" placeholder="Passwort" onkeydown="if(event.key==='Enter')tryLogin()">
     <div class="login-err" id="login-err">Falsches Passwort</div>
     <button class="btn btn-csv" onclick="tryLogin()" style="width:100%;text-align:center;padding:11px">Anmelden</button>
-    <p style="font-size:11px;color:var(--txd);margin-top:16px">Version 1.1</p>
+    <p style="font-size:11px;color:var(--txd);margin-top:16px">Version 1.2</p>
   </div>
 </div>
 
@@ -99,22 +102,36 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--txd);border-top
 <div id="app" style="display:none">
   <header>
     <div style="display:flex;align-items:center;gap:12px">
-      <img src="logo_rkc.png" alt="RIAS Kammerchor" style="height:36px;width:auto;filter:brightness(0) invert(1);opacity:.9">
+      <img src="logo_rkc_white.png" alt="RIAS Kammerchor" style="height:36px;width:auto">
       <div>
         <h1>Indi-Kalender · Büroansicht</h1>
         <div class="sub">RIAS Kammerchor Berlin</div>
       </div>
     </div>
     <div class="hdr-right">
+      <button class="btn" id="btn-abgleich" onclick="toggleView()" style="border-color:rgba(255,255,255,.4);color:rgba(255,255,255,.9);font-size:10px">&#128196; Datenabgleich</button>
       <button class="btn btn-csv" onclick="csvEx()">&#8595; CSV</button>
       <button class="btn" onclick="doLogout()" style="font-size:10px">Abmelden</button>
     </div>
   </header>
 
   <main>
-    <div class="stats" id="stats"></div>
+    <!-- ANSICHT: Startseite (heute) -->
+    <div id="view-heute">
+      <div class="stats" id="stats"></div>
+      <div class="tw"><table>
+        <thead><tr>
+          <th>Mitglied</th><th>Stimme</th><th>Datum</th><th>Wochentag</th><th>Umfang</th><th>Status</th><th>Bemerkung</th>
+        </tr></thead>
+        <tbody id="tbl-heute"></tbody>
+      </table></div>
+      <div id="es-heute" class="es" style="display:none">Keine kommenden genehmigten oder beantragten Indis</div>
+    </div>
 
-    <div class="filter-bar">
+    <!-- ANSICHT: Datenabgleich -->
+    <div id="view-abgleich" style="display:none">
+      <div class="stats" id="stats-abgleich"></div>
+      <div class="filter-bar">
       <div>
         <label>Jahr</label><br>
         <select id="f-jahr" onchange="render()">
@@ -168,10 +185,11 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--txd);border-top
       </tr></thead>
       <tbody id="tbl"></tbody>
     </table></div>
-    <div id="es" class="es" style="display:none">Keine Einträge gefunden</div>
+      <div id="es" class="es" style="display:none">Keine Einträge gefunden</div>
+    </div><!-- /view-abgleich -->
   </main>
 
-  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · nur Lesen · Version 1.1</footer>
+  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · nur Lesen · Version 1.2</footer>
 </div>
 
 <script>
@@ -230,12 +248,85 @@ async function laden() {
     });
     fillJahre();
     fillMitglieder();
-    render();
+    renderHeute();
   } catch(e) {
     document.getElementById('tbl').innerHTML =
       '<tr><td colspan="7" style="color:var(--red);padding:20px">Fehler: '+e.message+'</td></tr>';
   }
 }
+
+var _viewAbgleich = false;
+
+function toggleView() {
+  _viewAbgleich = !_viewAbgleich;
+  document.getElementById('view-heute').style.display    = _viewAbgleich ? 'none' : 'block';
+  document.getElementById('view-abgleich').style.display = _viewAbgleich ? 'block' : 'none';
+  var btn = document.getElementById('btn-abgleich');
+  btn.classList.toggle('aktiv', _viewAbgleich);
+  btn.textContent = _viewAbgleich ? '← Zurück' : '📄 Datenabgleich';
+  if (_viewAbgleich) renderAbgleich(); else renderHeute();
+}
+
+function renderHeute() {
+  var t = td();
+  var heute = D.a.filter(function(a){
+    return a.datum && a.datum >= t && (a.status==='genehmigt'||a.status==='beantragt');
+  }).sort(function(a,b){
+    if (a.datum!==b.datum) return a.datum<b.datum?-1:1;
+    var vo=['S','A','T','B'];
+    var ma=mById(a.mid), mb=mById(b.mid);
+    return vo.indexOf(ma?ma.stimme:'')-vo.indexOf(mb?mb.stimme:'');
+  });
+
+  var gen = heute.filter(function(a){return a.status==='genehmigt';}).length;
+  var beant = heute.filter(function(a){return a.status==='beantragt';}).length;
+  var next = heute[0];
+  var nextStr = next ? (function(){
+    var p=next.datum.split('-');
+    var d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+    return WT[d.getDay()]+', '+p[2]+'.'+p[1]+'.';
+  })() : '–';
+
+  document.getElementById('stats').innerHTML =
+    stat('Genehmigt (ab heute)', gen, 'var(--grn)') +
+    stat('Beantragt (offen)', beant, 'var(--amb)') +
+    stat('Nächster Indi-Tag', nextStr, 'var(--txt)') +
+    stat('Einträge gesamt', heute.length, 'var(--txm)');
+
+  var tb = document.getElementById('tbl-heute');
+  var es = document.getElementById('es-heute');
+  if (!heute.length) { tb.innerHTML=''; es.style.display='block'; return; }
+  es.style.display='none';
+  var lastDat = '';
+  tb.innerHTML = heute.map(function(a){
+    var m = mById(a.mid);
+    var stimme = m ? m.stimme : '';
+    var sBadge = {S:'bs',A:'ba',T:'bb',B:'bt'}[stimme]||'bt';
+    var stBadge = a.status==='genehmigt'
+      ? '<span class="badge bg">&#10003; Genehmigt</span>'
+      : '<span class="badge bb">&#8987; Beantragt</span>';
+    var dp=a.datum.split('-');
+    var dO=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    var header = '';
+    if (a.datum !== lastDat) {
+      lastDat = a.datum;
+      header = '<tr class="date-row"><td colspan="7">'+WT[dO.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0]+'</td></tr>';
+    }
+    var umfStr = a.umfang==='sammlung'?'Sammelindi ×'+(a.anzahl||2):(UL[a.umfang]||'Ganzer Tag');
+    return header+'<tr>'+
+      '<td style="font-weight:500">'+(m?m.vorname+' '+m.nachname:'?')+'</td>'+
+      '<td><span class="badge '+sBadge+'">'+(VN[stimme]||stimme)+'</span></td>'+
+      '<td>'+fd(a.datum)+'</td>'+
+      '<td style="color:var(--txd)">'+WT[dO.getDay()]+'</td>'+
+      '<td style="color:var(--txm);font-size:12px">'+umfStr+'</td>'+
+      '<td>'+stBadge+'</td>'+
+      '<td style="font-size:12px;color:var(--txm)">'+(a.bemerkung||'–')+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+function render() { renderAbgleich(); }
+function renderAbgleich() {
 
 function fillJahre() {
   var jahre = {};
@@ -357,11 +448,11 @@ function render() {
     return WT[d.getDay()]+', '+p[2]+'.'+p[1]+'.';
   })() : '–';
 
-  document.getElementById('stats').innerHTML =
-    stat('Genehmigt (ab heute)', gen, 'var(--grn)') +
-    stat('Beantragt (offen)', beant, 'var(--amb)') +
-    stat('Nächster Indi-Tag', nextStr, 'var(--txt)') +
-    stat('Einträge gesamt', list.length, 'var(--txm)');
+  document.getElementById('stats-abgleich').innerHTML =
+    stat('Genehmigt', gen, 'var(--grn)') +
+    stat('Beantragt', beant, 'var(--amb)') +
+    stat('Nächster (ab heute)', nextStr, 'var(--txt)') +
+    stat('Einträge', list.length, 'var(--txm)');
 
   // Tabelle
   var tb = document.getElementById('tbl');
@@ -408,6 +499,8 @@ function stat(label, val, col) {
   return '<div class="stat">'+
     '<div class="stat-label">'+label+'</div>'+
     '<div class="stat-val" style="color:'+col+'">'+val+'</div></div>';
+}
+
 }
 
 function csvEx() {
