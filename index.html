@@ -1443,8 +1443,17 @@ function rKto(){
   }).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
   var mKto = mById(_kId);
   var kBase = mKto ? (mKto.kontingent===null||mKto.kontingent===undefined||mKto.kontingent===''?3:parseFloat(mKto.kontingent)) : 3;
-  // Stand 31.12.: Basiskontingent + Gutschriften bis 31.12.vj - Genommene bis 31.12.vj
+  // DEBUG: genaue Werte anzeigen
+  console.log('=== standVj Debug ===');
+  console.log('vjEnd:', vjEnd);
+  console.log('kBase (Kontingent):', kBase);
+  console.log('gutVj (Gutschriften bis vjEnd):', gutVj);
+  console.log('gnVj (Genommen bis vjEnd):', gnVj);
+  D.g.filter(function(g){return g.mid===_kId;}).forEach(function(g){
+    console.log('  Gutschrift:', g.datum, 'anzahl:', g.anzahl, 'included:', !!(g.datum && g.datum<=vjEnd));
+  });
   var standVj = kBase + gutVj - gnVj;
+  console.log('standVj Ergebnis:', standVj, '(erwartet: 4.5)');
   // Genommen nur laufendes Jahr
   var yrStart = D.yr+'-01-01', yrEnd = D.yr+'-12-31';
   var gnJahr = D.a.filter(function(a){
