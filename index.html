@@ -151,7 +151,7 @@ textarea{min-height:80px;resize:vertical;}
 <header>
   <div>
     <h1>Indi-Verwaltung &middot; RIAS Kammerchor</h1>
-    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.5</div>
+    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.6</div>
   </div>
   <span id="yr" style="font-size:24px;font-weight:300;opacity:.8"></span>
 </header>
@@ -502,9 +502,8 @@ function fd(s) {
   return p.length===3 ? p[2]+'.'+p[1]+'.'+p[0] : s;
 }
 function ko(m) {
-  var k = m.kontingent===null||m.kontingent===undefined||m.kontingent==='' ? 3 : parseFloat(m.kontingent);
-  return k +
-    D.g.filter(function(g){return g.mid===m.id;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
+  // Jahreszuteilungen sind als Gutschriften erfasst - nur Gutschriften summieren, kein kBase
+  return D.g.filter(function(g){return g.mid===m.id;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
 }
 function wt(a) { return a.umfang==='sammlung' ? (parseFloat(a.anzahl)||2) : (a.umfang==='erste'||a.umfang==='zweite') ? 0.5 : 1; }
 function cnt(mid) {
