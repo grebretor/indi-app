@@ -91,16 +91,19 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--txd);border-top
     <input type="password" id="pw-inp" placeholder="Passwort" onkeydown="if(event.key==='Enter')tryLogin()">
     <div class="login-err" id="login-err">Falsches Passwort</div>
     <button class="btn btn-csv" onclick="tryLogin()" style="width:100%;text-align:center;padding:11px">Anmelden</button>
-    <p style="font-size:11px;color:var(--txd);margin-top:16px">Version 1.0</p>
+    <p style="font-size:11px;color:var(--txd);margin-top:16px">Version 1.1</p>
   </div>
 </div>
 
 <!-- APP -->
 <div id="app" style="display:none">
   <header>
-    <div>
-      <h1>Indi-Kalender · Büroansicht</h1>
-      <div class="sub">RIAS Kammerchor Berlin · nur genehmigte &amp; beantragte Indis</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <img src="logo_rkc.png" alt="RIAS Kammerchor" style="height:36px;width:auto;filter:brightness(0) invert(1);opacity:.9">
+      <div>
+        <h1>Indi-Kalender · Büroansicht</h1>
+        <div class="sub">RIAS Kammerchor Berlin</div>
+      </div>
     </div>
     <div class="hdr-right">
       <button class="btn btn-csv" onclick="csvEx()">&#8595; CSV</button>
@@ -113,8 +116,14 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--txd);border-top
 
     <div class="filter-bar">
       <div>
-        <label>Monat</label><br>
-        <select id="f-monat" onchange="render()">
+        <label>Jahr</label><br>
+        <select id="f-jahr" onchange="render()">
+          <option value="">Alle</option>
+        </select>
+      </div>
+      <div>
+        <label>Mitglied</label><br>
+        <select id="f-mit" onchange="render()">
           <option value="">Alle</option>
         </select>
       </div>
@@ -134,11 +143,17 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--txd);border-top
           <option value="">Alle</option>
           <option value="genehmigt">Genehmigt</option>
           <option value="beantragt">Beantragt</option>
+          <option value="genommen">Genommen</option>
+          <option value="abgelehnt">Abgelehnt</option>
         </select>
       </div>
       <div style="flex:1;display:flex;align-items:flex-end;justify-content:flex-end">
-        <button class="btn" onclick="document.getElementById('f-monat').value='';document.getElementById('f-stimme').value='';document.getElementById('f-status').value='';render()">Zurücksetzen</button>
+        <button class="btn" onclick="resetFilter()">Zurücksetzen</button>
       </div>
+    </div>
+    <div id="mit-info" style="display:none;background:var(--sur);border:1px solid var(--brd);border-left:4px solid var(--gld);border-radius:6px;padding:14px 18px;margin-bottom:16px;display:none">
+      <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:10px" id="mit-info-name"></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap" id="mit-info-stats"></div>
     </div>
 
     <div class="tw"><table>
@@ -156,7 +171,7 @@ footer{text-align:center;padding:20px;font-size:11px;color:var(--txd);border-top
     <div id="es" class="es" style="display:none">Keine Einträge gefunden</div>
   </main>
 
-  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · nur Lesen · Version 1.0</footer>
+  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · nur Lesen · Version 1.1</footer>
 </div>
 
 <script>
@@ -165,7 +180,7 @@ var SUPABASE_KEY = 'sb_publishable_MJUP_gLZccCY-UUlF1p7oQ_JB1hta_g';
 var BUERO_PW    = '12345'; // <-- Passwort hier eintragen
 
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-var D  = {m:[], a:[]};
+var D  = {m:[], a:[], g:[]};
 var WT = ['So','Mo','Di','Mi','Do','Fr','Sa'];
 var VN = {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'};
 var UL = {ganz:'Ganzer Tag',erste:'Erster Dienst',zweite:'Zweiter Dienst',sammlung:'Sammelindi'};
@@ -203,17 +218,18 @@ function wt(a) {
 
 async function laden() {
   try {
-    var [rm, ra] = await Promise.all([
+    var [rm, ra, rg] = await Promise.all([
       sb.from('mitglieder').select('*').order('nachname'),
-      sb.from('antraege').select('*').order('datum')
+      sb.from('antraege').select('*').order('datum'),
+      sb.from('gutschriften').select('*').order('datum')
     ]);
     D.m = rm.data||[];
+    D.g = rg ? (rg.data||[]).map(function(x){x.mid=x.mitglied_id||'';return x;}) : [];
     D.a = (ra.data||[]).map(function(x){
       x.mid = x.mitglied_id||''; return x;
-    }).filter(function(a){
-      return a.status==='genehmigt' || a.status==='beantragt';
     });
-    fillMonate();
+    fillJahre();
+    fillMitglieder();
     render();
   } catch(e) {
     document.getElementById('tbl').innerHTML =
@@ -221,35 +237,48 @@ async function laden() {
   }
 }
 
-function fillMonate() {
-  var monate = {};
+function fillJahre() {
+  var jahre = {};
   D.a.forEach(function(a){
     if (!a.datum) return;
-    var key = a.datum.slice(0,7);
-    var p = key.split('-');
-    var mn = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-    monate[key] = mn[parseInt(p[1])-1]+' '+p[0];
+    jahre[a.datum.slice(0,4)] = true;
   });
-  var sel = document.getElementById('f-monat');
-  var keys = Object.keys(monate).sort();
-  keys.forEach(function(k){
+  var sel = document.getElementById('f-jahr');
+  Object.keys(jahre).sort().reverse().forEach(function(j){
     var o = document.createElement('option');
-    o.value = k; o.textContent = monate[k];
+    o.value = j; o.textContent = j;
     sel.appendChild(o);
   });
-  // Aktuellen Monat vorauswählen
-  var cur = td().slice(0,7);
-  if (monate[cur]) sel.value = cur;
+  sel.value = new Date().getFullYear().toString();
+}
+
+function fillMitglieder() {
+  var sel = document.getElementById('f-mit');
+  D.m.forEach(function(m){
+    var o = document.createElement('option');
+    o.value = m.id;
+    o.textContent = m.nachname+', '+m.vorname+' ('+m.stimme+')';
+    sel.appendChild(o);
+  });
+}
+
+function resetFilter() {
+  document.getElementById('f-jahr').value = new Date().getFullYear().toString();
+  document.getElementById('f-mit').value = '';
+  document.getElementById('f-stimme').value = '';
+  document.getElementById('f-status').value = '';
+  render();
 }
 
 function getFiltered() {
-  var fM = document.getElementById('f-monat').value;
-  var fS = document.getElementById('f-stimme').value;
+  var fJ  = document.getElementById('f-jahr').value;
+  var fM  = document.getElementById('f-mit').value;
+  var fS  = document.getElementById('f-stimme').value;
   var fSt = document.getElementById('f-status').value;
-  var t = td();
   return D.a.filter(function(a){
     if (!a.datum) return false;
-    if (fM && !a.datum.startsWith(fM)) return false;
+    if (fJ && !a.datum.startsWith(fJ)) return false;
+    if (fM && a.mid !== fM) return false;
     var m = mById(a.mid);
     if (fS && (!m || m.stimme!==fS)) return false;
     if (fSt && a.status!==fSt) return false;
@@ -262,14 +291,66 @@ function getFiltered() {
   });
 }
 
+function mitInfo() {
+  var fM  = document.getElementById('f-mit').value;
+  var fJ  = document.getElementById('f-jahr').value;
+  var box = document.getElementById('mit-info');
+  if (!fM) { box.style.display='none'; return; }
+  var m = mById(fM);
+  if (!m) { box.style.display='none'; return; }
+  var yr = fJ ? parseInt(fJ) : new Date().getFullYear();
+  var vjEnd = (yr-1)+'-12-31';
+  var yrEnd = yr+'-12-31';
+
+  // Stand 31.12. Vorjahr
+  var gnVj = D.a.filter(function(a){
+    return a.mid===fM && a.status==='genommen' && a.datum && a.datum<=vjEnd;
+  }).reduce(function(s,a){return s+wt(a);},0);
+  var gutVj = D.g.filter(function(g){
+    return g.mid===fM && g.datum && g.datum<=vjEnd;
+  }).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
+  var kont = m.kontingent===null||m.kontingent===undefined||m.kontingent===''?3:parseFloat(m.kontingent);
+  var standVj = kont + gutVj - gnVj;
+
+  // Aktueller Stand (bis Ende des gewählten Jahres)
+  var gnJahr = D.a.filter(function(a){
+    return a.mid===fM && a.status==='genommen' && a.datum && a.datum<=yrEnd;
+  }).reduce(function(s,a){return s+wt(a);},0);
+  var gutJahr = D.g.filter(function(g){
+    return g.mid===fM && g.datum && g.datum<=yrEnd;
+  }).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
+  var standJahr = kont + gutJahr - gnJahr;
+
+  var vn2 = {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'};
+  document.getElementById('mit-info-name').textContent =
+    m.vorname+' '+m.nachname+' · '+(vn2[m.stimme]||m.stimme);
+  document.getElementById('mit-info-stats').innerHTML =
+    mStat('Stand 31.12.'+(yr-1), fNum(standVj)) +
+    mStat('Genommen '+yr, fNum(gnJahr-gnVj)) +
+    mStat('Gutschriften '+yr, fNum(gutJahr-gutVj)) +
+    mStat('Stand 31.12.'+yr, fNum(standJahr));
+  box.style.display='block';
+}
+
+function mStat(label, val) {
+  return '<div style="background:var(--sur2);border:1px solid var(--brd);border-radius:var(--rad);padding:10px 14px;min-width:100px">'
+    +'<div style="font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--txd);margin-bottom:4px">'+label+'</div>'
+    +'<div style="font-size:20px;font-weight:300">'+val+'</div></div>';
+}
+
+function fNum(n) { return Math.round(n*10)/10; }
+
 function render() {
   var list = getFiltered();
   var t = td();
+  mitInfo();
 
   // Stats
-  var gen = D.a.filter(function(a){return a.status==='genehmigt'&&a.datum>=t;}).length;
-  var beant = D.a.filter(function(a){return a.status==='beantragt'&&a.datum>=t;}).length;
-  var next = D.a.filter(function(a){return a.datum>=t;}).sort(function(a,b){return a.datum<b.datum?-1:1;})[0];
+  var fJ = document.getElementById('f-jahr').value;
+  var aBase = fJ ? D.a.filter(function(a){return a.datum&&a.datum.startsWith(fJ);}) : D.a;
+  var gen = aBase.filter(function(a){return a.status==='genehmigt';}).length;
+  var beant = aBase.filter(function(a){return a.status==='beantragt';}).length;
+  var next = D.a.filter(function(a){return a.datum>=t&&(a.status==='genehmigt'||a.status==='beantragt');}).sort(function(a,b){return a.datum<b.datum?-1:1;})[0];
   var nextStr = next ? (function(){
     var p=next.datum.split('-');
     var d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
