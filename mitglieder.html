@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meine Indis - RIAS Kammerchor (v1.2)</title>
-<!-- v40 -->
+<!-- v42 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -177,7 +177,7 @@ select:focus{border-color:var(--gld);}
 <header>
   <div>
     <h1>Meine Indis</h1>
-    <div class="sub">RIAS Kammerchor Berlin &middot; Version 1.7</div>
+    <div class="sub">RIAS Kammerchor Berlin &middot; Version 1.9</div>
   </div>
   <span id="yr-label" style="font-size:22px;font-weight:300;opacity:.8"></span>
 </header>
@@ -188,7 +188,7 @@ select:focus{border-color:var(--gld);}
   <div class="select-box">
     <h2>Willkommen</h2>
     <p>Bitte deinen Namen auswählen um deine Indi-Übersicht zu sehen.</p>
-    <p style="font-size:10px;color:var(--brdl);margin-top:8px;letter-spacing:.1em">Version 1.7</p>
+    <p style="font-size:10px;color:var(--brdl);margin-top:8px;letter-spacing:.1em">Version 1.9</p>
     <div style="margin-bottom:12px">
       <label style="display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txd);margin-bottom:8px;text-align:left">Dein Name</label>
       <select id="m-sel" style="text-align:left">
@@ -405,8 +405,9 @@ function renderProfil(m){
   // Kontingent-Karten
   var vjEnd=(yr-1)+'-12-31';
   var gnVj=D.a.filter(function(a){return a.mid===mid&&a.status==='genommen'&&a.datum<=vjEnd;}).reduce(function(s,a){return s+wt(a);},0);
-  var gutVj=D.g.filter(function(g){return g.mid===mid&&g.datum<=vjEnd;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
-  var standVj=Math.max(0,(parseFloat(m.kontingent)||3)+gutVj-gnVj);
+  var gutVj=D.g.filter(function(g){return g.mid===mid&&g.datum&&g.datum<=vjEnd;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
+  var kBase = m.kontingent===null||m.kontingent===undefined||m.kontingent===''?3:parseFloat(m.kontingent);
+  var standVj = kBase + gutVj - gnVj;
   // Genommen im Laufjahr (ab 04-01 oder ab 01-01 wenn Vorjahr erfüllt)
   // Genommen Laufjahr für Karte (alle ab 01.01., wird später durch ljGnAnzeige ersetzt)
   var gnJahr = D.a.filter(function(a){
@@ -844,8 +845,9 @@ function renderKto() {
   var yr = D.yr;
   var vjEnd = (yr-1)+'-12-31';
   var gnVj2 = D.a.filter(function(a){return a.mid===_ktoMid&&a.status==='genommen'&&a.datum<=vjEnd;}).reduce(function(s,a){return s+wt(a);},0);
-  var gutVj2 = D.g.filter(function(g){return g.mid===_ktoMid&&g.datum<=vjEnd;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
-  var standVj2 = (parseFloat(m.kontingent)||0) + gutVj2 - gnVj2;
+  var gutVj2 = D.g.filter(function(g){return g.mid===_ktoMid&&g.datum&&g.datum<=vjEnd;}).reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
+  var kBase2 = (m.kontingent===null||m.kontingent===undefined||m.kontingent===''?3:parseFloat(m.kontingent));
+  var standVj2 = kBase2 + gutVj2 - gnVj2;
   var gnJahr2 = D.a.filter(function(a){return a.mid===_ktoMid&&a.status==='genommen'&&a.datum>=(yr+'-01-01')&&a.datum<=(yr+'-12-31');}).reduce(function(s,a){return s+wt(a);},0);
 
   document.getElementById('kto-stats').innerHTML =
