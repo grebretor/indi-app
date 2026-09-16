@@ -81,7 +81,7 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
     <input type="password" id="pw-inp" placeholder="Passwort" onkeydown="if(event.key==='Enter')tryLogin()">
     <div class="login-err" id="login-err">Falsches Passwort</div>
     <button class="btn" onclick="tryLogin()" style="width:100%;text-align:center;padding:11px;border-color:var(--gld);color:var(--gld);background:var(--gldd)">Anmelden</button>
-    <p style="font-size:11px;color:var(--txd);margin-top:14px">Version 1.6</p>
+    <p style="font-size:11px;color:var(--txd);margin-top:14px">Version 1.7</p>
   </div>
 </div>
 
@@ -146,7 +146,7 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
       <div id="es-abl" class="es" style="display:none">Keine Einträge gefunden</div>
     </div>
   </main>
-  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · Version 1.6 · nur Lesen</footer>
+  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · Version 1.7 · nur Lesen</footer>
 </div>
 
 <script>
@@ -338,10 +338,10 @@ function renderAbl() {
   var be=list.filter(function(a){return a.status==='beantragt';}).length;
   var gn=list.filter(function(a){return a.status==='genommen';}).length;
   document.getElementById('st-abl').innerHTML=
-    stat('Genehmigt',gen,'var(--grn)')+
-    stat('Beantragt',be,'var(--amb)')+
+    stat('Anträge erfolgreich',gen,'var(--grn)')+
+    stat('Ausstehend',be,'var(--amb)')+
     stat('Genommen',gn,'var(--txm)')+
-    stat('Gesamt',list.length,'var(--txd)');
+    stat('Einträge gesamt',list.length,'var(--txd)');
 
   // Tabellenkopf für Indis-Ansicht sicherstellen
   var th=document.getElementById('th-abl');
