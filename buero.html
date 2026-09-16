@@ -81,7 +81,7 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
     <input type="password" id="pw-inp" placeholder="Passwort" onkeydown="if(event.key==='Enter')tryLogin()">
     <div class="login-err" id="login-err">Falsches Passwort</div>
     <button class="btn" onclick="tryLogin()" style="width:100%;text-align:center;padding:11px;border-color:var(--gld);color:var(--gld);background:var(--gldd)">Anmelden</button>
-    <p style="font-size:11px;color:var(--txd);margin-top:14px">Version 1.2</p>
+    <p style="font-size:11px;color:var(--txd);margin-top:14px">Version 1.4</p>
   </div>
 </div>
 
@@ -106,7 +106,7 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
     <div id="v-start">
       <div class="stats" id="st-start"></div>
       <div class="tw"><table>
-        <thead><tr><th>Mitglied</th><th>Stimme</th><th>Datum</th><th>Wtag</th><th>Umfang</th><th>Status</th><th>Bemerkung</th></tr></thead>
+        <thead><tr><th>Mitglied</th><th>Stimme</th><th>Umfang</th><th>Status</th><th>Bemerkung</th></tr></thead>
         <tbody id="tb-start"></tbody>
       </table></div>
       <div id="es-start" class="es" style="display:none">Keine kommenden genehmigten oder beantragten Indis</div>
@@ -116,13 +116,17 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
     <div id="v-abl" style="display:none">
       <div class="stats" id="st-abl"></div>
       <div class="fbar">
+        <div><label>Ansicht</label><select id="f-av" onchange="renderAbl()">
+          <option value="indis">Indis</option>
+          <option value="gutschriften">Gutschriften</option>
+        </select></div>
         <div><label>Jahr</label><select id="f-jr" onchange="renderAbl()"><option value="">Alle</option></select></div>
         <div><label>Mitglied</label><select id="f-mi" onchange="renderAbl()"><option value="">Alle</option></select></div>
-        <div><label>Stimme</label><select id="f-st" onchange="renderAbl()">
+        <div id="f-st-wrap"><label>Stimme</label><select id="f-st" onchange="renderAbl()">
           <option value="">Alle</option><option value="S">Sopran</option>
           <option value="A">Alt</option><option value="T">Tenor</option><option value="B">Bass</option>
         </select></div>
-        <div><label>Status</label><select id="f-ss" onchange="renderAbl()">
+        <div id="f-ss-wrap"><label>Status</label><select id="f-ss" onchange="renderAbl()">
           <option value="">Alle</option><option value="genehmigt">Genehmigt</option>
           <option value="beantragt">Beantragt</option><option value="genommen">Genommen</option>
           <option value="abgelehnt">Abgelehnt</option>
@@ -136,13 +140,13 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
         <div class="mit-stats" id="mi-stats"></div>
       </div>
       <div class="tw"><table>
-        <thead><tr><th>Mitglied</th><th>Stimme</th><th>Datum</th><th>Wtag</th><th>Umfang</th><th>Status</th><th>Bemerkung</th></tr></thead>
+        <thead id="th-abl"><tr><th>Mitglied</th><th>Stimme</th><th>Umfang</th><th>Status</th><th>Bemerkung</th></tr></thead>
         <tbody id="tb-abl"></tbody>
       </table></div>
       <div id="es-abl" class="es" style="display:none">Keine Einträge gefunden</div>
     </div>
   </main>
-  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · Version 1.2 · nur Lesen</footer>
+  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · Version 1.4 · nur Lesen</footer>
 </div>
 
 <script>
@@ -231,16 +235,18 @@ function stat(l,v,c) {
 function umfStr(a) {
   return a.umfang==='sammlung'?'Sammelindi ×'+(a.anzahl||2):(UL[a.umfang]||'Ganzer Tag');
 }
-function zeile(a, showDate) {
+function zeile(a, showDate, tagCount) {
   var m=mById(a.mid), stimme=m?m.stimme:'';
   var dp=a.datum.split('-');
   var dO=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
-  return (showDate?'<tr class="dr"><td colspan="7">'+WT[dO.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0]+'</td></tr>':'')+
+  var datHdr = showDate
+    ? '<tr class="dr"><td colspan="5">'+WT[dO.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0]+
+      '<span style="float:right;font-size:10px;font-weight:400;opacity:.7;letter-spacing:.05em">'+tagCount+' Abwesend</span></td></tr>'
+    : '';
+  return datHdr+
     '<tr>'+
     '<td style="font-weight:500">'+(m?m.vorname+' '+m.nachname:'?')+'</td>'+
     '<td><span class="badge '+(VSB[stimme]||'bt')+'">'+(VN[stimme]||stimme)+'</span></td>'+
-    '<td>'+fd(a.datum)+'</td>'+
-    '<td style="color:var(--txd)">'+WT[dO.getDay()]+'</td>'+
     '<td style="color:var(--txm);font-size:12px">'+umfStr(a)+'</td>'+
     '<td>'+(SBL[a.status]||a.status)+'</td>'+
     '<td style="font-size:12px;color:var(--txm)">'+(a.bemerkung||'–')+'</td>'+
@@ -274,13 +280,16 @@ function renderStart() {
   if(!list.length){tb.innerHTML='';es.style.display='block';return;}
   es.style.display='none';
   var ld='';
+  var tagCounts={};
+  list.forEach(function(a){ tagCounts[a.datum]=(tagCounts[a.datum]||0)+1; });
   tb.innerHTML=list.map(function(a){
-    var show=a.datum!==ld; ld=a.datum; return zeile(a,show);
+    var show=a.datum!==ld; ld=a.datum; return zeile(a,show,tagCounts[a.datum]);
   }).join('');
 }
 
 // ── DATENABGLEICH ─────────────────────────────────────────
 function resetF() {
+  document.getElementById('f-av').value='indis';
   document.getElementById('f-jr').value=new Date().getFullYear().toString();
   document.getElementById('f-mi').value='';
   document.getElementById('f-st').value='';
@@ -309,6 +318,17 @@ function getAblFiltered() {
 }
 
 function renderAbl() {
+  var av = document.getElementById('f-av').value;
+  var isGut = av === 'gutschriften';
+
+  // Stimme + Status ein/ausblenden
+  var stw = document.getElementById('f-st-wrap');
+  var ssw = document.getElementById('f-ss-wrap');
+  if (stw) stw.style.display = isGut ? 'none' : '';
+  if (ssw) ssw.style.display = isGut ? 'none' : '';
+
+  if (isGut) { renderGutschriften(); return; }
+
   var list=getAblFiltered();
   var fJ=document.getElementById('f-jr').value;
   var fM=document.getElementById('f-mi').value;
@@ -322,6 +342,10 @@ function renderAbl() {
     stat('Beantragt',be,'var(--amb)')+
     stat('Genommen',gn,'var(--txm)')+
     stat('Gesamt',list.length,'var(--txd)');
+
+  // Tabellenkopf für Indis-Ansicht sicherstellen
+  var th=document.getElementById('th-abl');
+  if(th) th.innerHTML='<tr><th>Mitglied</th><th>Stimme</th><th>Umfang</th><th>Status</th><th>Bemerkung</th></tr>';
 
   // Mitglieder-Infobox
   var box=document.getElementById('mit-info');
@@ -351,13 +375,84 @@ function renderAbl() {
   if(!list.length){tb.innerHTML='';es.style.display='block';return;}
   es.style.display='none';
   var ld='';
+  var tagCounts2={};
+  list.forEach(function(a){ tagCounts2[a.datum]=(tagCounts2[a.datum]||0)+1; });
   tb.innerHTML=list.map(function(a){
-    var show=a.datum!==ld; ld=a.datum; return zeile(a,show);
+    var show=a.datum!==ld; ld=a.datum; return zeile(a,show,tagCounts2[a.datum]);
   }).join('');
 }
 
 function ms(l,v) {
   return '<div class="ms"><div class="ms-l">'+l+'</div><div class="ms-v">'+v+'</div></div>';
+}
+
+// ── GUTSCHRIFTEN ──────────────────────────────────────────
+function renderGutschriften() {
+  var fJ = document.getElementById('f-jr').value;
+  var fM = document.getElementById('f-mi').value;
+
+  var list = D.g.filter(function(g){
+    if (!g.datum) return false;
+    if (fJ && !g.datum.startsWith(fJ)) return false;
+    if (fM && g.mid !== fM) return false;
+    return true;
+  }).sort(function(a,b){
+    if (a.datum!==b.datum) return a.datum<b.datum?-1:1;
+    var vo=['S','A','T','B'];
+    return vo.indexOf((mById(a.mid)||{}).stimme||'') - vo.indexOf((mById(b.mid)||{}).stimme||'');
+  });
+
+  // Stats
+  var total = list.reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
+  var anzGut = list.length;
+  document.getElementById('st-abl').innerHTML =
+    stat('Gutschriften gesamt', anzGut, 'var(--grn)') +
+    stat('Indis gesamt', fN(total), 'var(--gld)') +
+    stat('Ø pro Gutschrift', anzGut ? fN(total/anzGut) : 0, 'var(--txm)') +
+    stat('Zeitraum', fJ || 'Alle Jahre', 'var(--txd)');
+
+  // Mitglieder-Infobox bleibt wie gehabt
+  var fM2 = document.getElementById('f-mi').value;
+  var box = document.getElementById('mit-info');
+  if (fM2) {
+    var m = mById(fM2);
+    document.getElementById('mi-name').textContent = (m?m.vorname+' '+m.nachname:'?');
+    var mitGut = list.filter(function(g){return g.mid===fM2;});
+    var mitTotal = mitGut.reduce(function(s,g){return s+parseFloat(g.anzahl);},0);
+    document.getElementById('mi-stats').innerHTML =
+      ms('Gutschriften', mitGut.length) +
+      ms('Indis gesamt', fN(mitTotal));
+    box.style.display = 'block';
+  } else { box.style.display = 'none'; }
+
+  // Tabellenkopf
+  var th = document.getElementById('th-abl');
+  if (th) th.innerHTML = '<tr><th>Mitglied</th><th>Stimme</th><th>Datum</th><th>Anzahl</th><th>Grund</th></tr>';
+
+  var tb = document.getElementById('tb-abl');
+  var es = document.getElementById('es-abl');
+  if (!list.length) { tb.innerHTML=''; es.style.display='block'; return; }
+  es.style.display = 'none';
+
+  var ld = '';
+  tb.innerHTML = list.map(function(g){
+    var m = mById(g.mid);
+    var stimme = m ? m.stimme : '';
+    var dp = g.datum.split('-');
+    var dO = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    var showDate = g.datum !== ld; ld = g.datum;
+    return (showDate?'<tr class="dr"><td colspan="5">'+WT[dO.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0]+'</td></tr>':'')+
+      '<tr>'+
+      '<td style="font-weight:500">'+(m?m.vorname+' '+m.nachname:'?')+'</td>'+
+      '<td><span class="badge '+(VSB[stimme]||'bt')+'">'+(VN[stimme]||stimme)+'</span></td>'+
+      '<td>'+fd(g.datum)+'</td>'+
+      '<td style="font-weight:600;color:var(--grn)">+'+fN(parseFloat(g.anzahl))+'</td>'+
+      '<td style="font-size:12px;color:var(--txm)">'+(g.grund||'–')+'</td>'+
+      '</tr>';
+  }).join('');
+
+  // Tabellenkopf zurücksetzen wenn wieder zu Indis gewechselt
+  // (wird in renderAbl beim nächsten Indis-Aufruf gemacht)
 }
 
 // ── TOGGLE ────────────────────────────────────────────────
