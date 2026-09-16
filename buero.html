@@ -81,7 +81,7 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
     <input type="password" id="pw-inp" placeholder="Passwort" onkeydown="if(event.key==='Enter')tryLogin()">
     <div class="login-err" id="login-err">Falsches Passwort</div>
     <button class="btn" onclick="tryLogin()" style="width:100%;text-align:center;padding:11px;border-color:var(--gld);color:var(--gld);background:var(--gldd)">Anmelden</button>
-    <p style="font-size:11px;color:var(--txd);margin-top:14px">Version 1.5</p>
+    <p style="font-size:11px;color:var(--txd);margin-top:14px">Version 1.6</p>
   </div>
 </div>
 
@@ -146,7 +146,7 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
       <div id="es-abl" class="es" style="display:none">Keine Einträge gefunden</div>
     </div>
   </main>
-  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · Version 1.5 · nur Lesen</footer>
+  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · Version 1.6 · nur Lesen</footer>
 </div>
 
 <script>
@@ -368,8 +368,8 @@ function renderAbl() {
     document.getElementById('mi-name').textContent=(m?m.vorname+' '+m.nachname:'?')+' · '+(m?VN[m.stimme]||m.stimme:'');
     document.getElementById('mi-stats').innerHTML=
       ms('Stand 31.12.'+(yr-1),fN(svj))+
-      ms('Genommen '+(fJ||yr),fN(gnJahr))+
-      ms('Gutschriften '+(fJ||yr),fN(gutJahr))+
+      ms('Genommen '+(fJ||'gesamt'),fN(gnJahr))+
+      ms('Gutschriften '+(fJ||'gesamt'),fN(gutJahr))+
       ms('Ist-Stand heute',fN(istStand),'var(--gld)');
     box.style.display='block';
   } else { box.style.display='none'; }
