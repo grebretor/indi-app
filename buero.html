@@ -67,7 +67,7 @@ tr:last-child td{border-bottom:none;}
 footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top:1px solid var(--brd);margin-top:20px;}
 @media(max-width:500px){
   header{flex-wrap:wrap;}
-  .hdr-right{width:100%;justify-content:flex-end;}
+  .hdr-right{width:100%;justify-content:flex-end;flex-wrap:wrap;}
 }
 </style>
 </head>
@@ -81,7 +81,7 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
     <input type="password" id="pw-inp" placeholder="Passwort" onkeydown="if(event.key==='Enter')tryLogin()">
     <div class="login-err" id="login-err">Falsches Passwort</div>
     <button class="btn" onclick="tryLogin()" style="width:100%;text-align:center;padding:11px;border-color:var(--gld);color:var(--gld);background:var(--gldd)">Anmelden</button>
-    <p style="font-size:11px;color:var(--txd);margin-top:14px">Version 1.8</p>
+    <p style="font-size:11px;color:var(--txd);margin-top:14px">Version 1.9</p>
   </div>
 </div>
 
@@ -97,6 +97,7 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
     <div class="hdr-right">
       <button class="hbtn" id="btn-abl" onclick="toggleView()">&#128196; Datenabgleich</button>
       <button class="hbtn hbtn-csv" onclick="csvEx()">&#8595; CSV</button>
+      <button class="hbtn" id="btn-spe" onclick="toggleSpe()">&#128721; Sperrtage</button>
       <button class="hbtn" onclick="doLogout()">Abmelden</button>
     </div>
   </header>
@@ -145,8 +146,31 @@ footer{text-align:center;padding:18px;font-size:11px;color:var(--txd);border-top
       </table></div>
       <div id="es-abl" class="es" style="display:none">Keine Einträge gefunden</div>
     </div>
+
+    <!-- Sperrtage (derzeit nur Lesen) -->
+    <div id="v-spe" style="display:none">
+      <div class="stats" id="st-spe"></div>
+      <div class="fbar">
+        <div><label>Zeitraum</label><select id="fs-zr" onchange="renderSpe()">
+          <option value="ab">Ab heute</option>
+          <option value="alle">Alle</option>
+        </select></div>
+        <div><label>Stimme</label><select id="fs-st" onchange="renderSpe()">
+          <option value="">Alle</option><option value="S">Sopran</option>
+          <option value="A">Alt</option><option value="T">Tenor</option><option value="B">Bass</option>
+        </select></div>
+        <!-- Platz für "+ Termin eintragen", falls das Büro später Schreibrechte bekommt -->
+        <div id="spe-aktionen" style="display:flex;align-items:flex-end;margin-left:auto"></div>
+      </div>
+      <p style="font-size:12px;color:var(--txd);margin:0 2px 12px">Konzerte und Generalproben ohne Indi-Möglichkeit &ndash; für den ganzen Chor oder einzelne Stimmgruppen.</p>
+      <div class="tw"><table>
+        <thead><tr><th>Datum</th><th>Gilt für</th><th>Typ</th><th>Umfang</th><th>Beschreibung</th></tr></thead>
+        <tbody id="tb-spe"></tbody>
+      </table></div>
+      <div id="es-spe" class="es" style="display:none">Keine Sperrtage im gewählten Zeitraum</div>
+    </div>
   </main>
-  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · Version 1.8 · nur Lesen</footer>
+  <footer>Indi-Verwaltung RIAS Kammerchor · Büroansicht · Version 1.9 · nur Lesen</footer>
 </div>
 
 <script>
@@ -155,7 +179,7 @@ var SUPABASE_KEY = 'sb_publishable_MJUP_gLZccCY-UUlF1p7oQ_JB1hta_g';
 var BUERO_PW    = '12345';
 
 var sb  = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-var D   = {m:[], a:[], g:[]};
+var D   = {m:[], a:[], g:[], s:[]};
 var WT  = ['So','Mo','Di','Mi','Do','Fr','Sa'];
 var VN  = {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'};
 var UL  = {ganz:'Ganzer Tag',erste:'Erster Dienst',zweite:'Zweiter Dienst',sammlung:'Sammelindi'};
@@ -166,7 +190,7 @@ var SBL = {
   abgelehnt:'<span class="badge br">Abgelehnt</span>'
 };
 var VSB = {S:'bs',A:'ba',T:'bb',B:'bt'};
-var _abl = false;
+var _view = 'start';   // 'start' | 'abl' | 'spe'
 
 // ── AUTH ──────────────────────────────────────────────────
 function tryLogin() {
@@ -185,14 +209,16 @@ function doLogout() { sessionStorage.removeItem('buero'); location.reload(); }
 // ── DATEN ─────────────────────────────────────────────────
 async function laden() {
   try {
-    var [rm, ra, rg] = await Promise.all([
+    var [rm, ra, rg, rs] = await Promise.all([
       sb.from('mitglieder').select('*').order('nachname'),
       sb.from('antraege').select('*').order('datum'),
-      sb.from('gutschriften').select('*').order('datum')
+      sb.from('gutschriften').select('*').order('datum'),
+      sb.from('sperrdaten').select('*').order('datum')
     ]);
     D.m = rm.data||[];
     D.a = (ra.data||[]).map(function(x){x.mid=x.mitglied_id||'';return x;});
     D.g = (rg.data||[]).map(function(x){x.mid=x.mitglied_id||'';return x;});
+    D.s = rs.data||[];
     fillSels();
     renderStart();
   } catch(e) {
@@ -251,6 +277,27 @@ function zeile(a, showDate, tagCount) {
     '<td>'+(SBL[a.status]||a.status)+'</td>'+
     '<td style="font-size:12px;color:var(--txm)">'+(a.bemerkung||'–')+'</td>'+
     '</tr>';
+}
+
+// ── SPERRTAGE JE STIMMGRUPPE (wie index.html) ─────────────
+// Spalte sperrdaten.stimmen: leer/NULL = gilt für alle, sonst z.B. 'T' oder 'S,A'
+var SP_VO = ['S','A','T','B'];
+function spStimmen(s) {
+  if (!s || !s.stimmen) return [];
+  return String(s.stimmen).split(',').map(function(x){return x.trim();}).filter(Boolean);
+}
+function spGilt(s, stimme) {
+  var st = spStimmen(s);
+  return !st.length || st.indexOf(stimme) >= 0;
+}
+function spLabel(s) {
+  var st = spStimmen(s);
+  if (!st.length) return 'Alle';
+  return st.map(function(v){ return VN[v]||v; }).join(', ');
+}
+function spUmf(s) {
+  var u = s.umfang || 'ganz';
+  return u==='erste' ? '1. Dienst' : u==='zweite' ? '2. Dienst' : 'Ganzer Tag';
 }
 
 // ── STARTANSICHT ──────────────────────────────────────────
@@ -461,20 +508,102 @@ function renderGutschriften() {
   // (wird in renderAbl beim nächsten Indis-Aufruf gemacht)
 }
 
-// ── TOGGLE ────────────────────────────────────────────────
-function toggleView() {
-  _abl=!_abl;
-  document.getElementById('v-start').style.display=_abl?'none':'block';
-  document.getElementById('v-abl').style.display=_abl?'block':'none';
-  var btn=document.getElementById('btn-abl');
-  btn.classList.toggle('aktiv',_abl);
-  btn.textContent=_abl?'← Zurück':'📄 Datenabgleich';
-  if(_abl) renderAbl(); else renderStart();
+// ── SPERRTAGE ─────────────────────────────────────────────
+function getSpeFiltered() {
+  var zr = document.getElementById('fs-zr').value;
+  var st = document.getElementById('fs-st').value;
+  var t = td();
+  return D.s.filter(function(s){
+    if (!s.datum) return false;
+    if (zr==='ab' && s.datum < t) return false;
+    if (st && !spGilt(s, st)) return false;
+    return true;
+  }).sort(function(a,b){ return a.datum<b.datum?-1:a.datum>b.datum?1:0; });
 }
 
+function renderSpe() {
+  var list = getSpeFiltered();
+  var t = td();
+  var kommend = D.s.filter(function(s){ return s.datum && s.datum>=t; })
+    .sort(function(a,b){ return a.datum<b.datum?-1:1; });
+  var nx = kommend[0];
+  var nxStr = nx ? (function(){var p=nx.datum.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));return WT[d.getDay()]+', '+p[2]+'.'+p[1]+'.';})() : '–';
+  var teil = kommend.filter(function(s){ return spStimmen(s).length>0; }).length;
+
+  document.getElementById('st-spe').innerHTML =
+    stat('Sperrtage ab heute', kommend.length, 'var(--red)') +
+    stat('Nächster Sperrtag', nxStr, 'var(--txt)') +
+    stat('Davon nur Stimmgruppen', teil, 'var(--amb)') +
+    stat('Angezeigt', list.length, 'var(--txd)');
+
+  var tb = document.getElementById('tb-spe');
+  var es = document.getElementById('es-spe');
+  if (!list.length) { tb.innerHTML=''; es.style.display='block'; return; }
+  es.style.display='none';
+
+  tb.innerHTML = list.map(function(s){
+    var dp = s.datum.split('-');
+    var dO = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    var vorbei = s.datum < t;
+    var stv = spStimmen(s);
+    var gilt = stv.length
+      ? stv.map(function(v){ return '<span class="badge '+(VSB[v]||'bt')+'" style="margin:1px 2px 1px 0">'+(VN[v]||v)+'</span>'; }).join('')
+      : '<span style="color:var(--txm);font-size:12px">Alle</span>';
+    return '<tr'+(vorbei?' style="opacity:.55"':'')+'>'+
+      '<td style="font-weight:500;white-space:nowrap">'+WT[dO.getDay()]+', '+dp[2]+'.'+dp[1]+'.'+dp[0]+
+        (s.datum===t?' <span style="font-size:10px;color:var(--gld);font-weight:700;margin-left:4px">HEUTE</span>':'')+'</td>'+
+      '<td>'+gilt+'</td>'+
+      '<td><span class="badge br">'+(s.typ||'–')+'</span></td>'+
+      '<td style="color:var(--txm);font-size:12px;white-space:nowrap">'+spUmf(s)+'</td>'+
+      '<td style="font-size:12px;color:var(--txm)">'+(s.beschreibung||'–')+'</td>'+
+      // Platz für Aktionen (Bearbeiten/Löschen), falls das Büro später Schreibrechte bekommt
+      '</tr>';
+  }).join('');
+}
+
+// ── ANSICHTEN ─────────────────────────────────────────────
+function setView(v) {
+  _view = v;
+  document.getElementById('v-start').style.display = v==='start' ? 'block' : 'none';
+  document.getElementById('v-abl').style.display   = v==='abl'   ? 'block' : 'none';
+  document.getElementById('v-spe').style.display   = v==='spe'   ? 'block' : 'none';
+  var bA = document.getElementById('btn-abl');
+  var bS = document.getElementById('btn-spe');
+  bA.classList.toggle('aktiv', v==='abl');
+  bS.classList.toggle('aktiv', v==='spe');
+  bA.textContent = v==='abl' ? '← Zurück' : '📄 Datenabgleich';
+  bS.textContent = v==='spe' ? '← Zurück' : '🛑 Sperrtage';
+  if (v==='abl') renderAbl();
+  else if (v==='spe') renderSpe();
+  else renderStart();
+}
+function toggleView() { setView(_view==='abl' ? 'start' : 'abl'); }
+function toggleSpe()  { setView(_view==='spe' ? 'start' : 'spe'); }
+
 // ── CSV ───────────────────────────────────────────────────
+function dlCsv(csv, name) {
+  var b=new Blob([csv],{type:'text/csv'});
+  var u=URL.createObjectURL(b);
+  var a=document.createElement('a');
+  a.href=u; a.download=name; a.click();
+  URL.revokeObjectURL(u);
+}
+function csvSpe() {
+  var list = getSpeFiltered();
+  if(!list.length){alert('Keine Einträge.');return;}
+  var rows=list.map(function(s){
+    var dp=s.datum.split('-');
+    var dO=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+    return [fd(s.datum), WT[dO.getDay()], spLabel(s), s.typ||'', spUmf(s), s.beschreibung||'']
+      .map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(';');
+  });
+  var bom=String.fromCharCode(0xFEFF);
+  dlCsv(bom+'Datum;Wtag;Gilt für;Typ;Umfang;Beschreibung\r\n'+rows.join('\r\n'),
+    'Sperrtage-'+(new Date().toISOString().slice(0,10))+'.csv');
+}
 function csvEx() {
-  var list = _abl ? getAblFiltered() : D.a.filter(function(a){
+  if (_view==='spe') { csvSpe(); return; }
+  var list = _view==='abl' ? getAblFiltered() : D.a.filter(function(a){
     return a.datum&&a.datum>=td()&&(a.status==='genehmigt'||a.status==='beantragt');
   }).sort(function(a,b){return a.datum<b.datum?-1:1;});
   if(!list.length){alert('Keine Einträge.');return;}
@@ -488,11 +617,7 @@ function csvEx() {
   });
   var bom=String.fromCharCode(0xFEFF);
   var csv=bom+'Mitglied;Stimme;Datum;Wtag;Umfang;Status;Bemerkung\r\n'+rows.join('\r\n');
-  var b=new Blob([csv],{type:'text/csv'});
-  var u=URL.createObjectURL(b);
-  var a=document.createElement('a');
-  a.href=u; a.download='Indi-'+(new Date().toISOString().slice(0,10))+'.csv'; a.click();
-  URL.revokeObjectURL(u);
+  dlCsv(csv, 'Indi-'+(new Date().toISOString().slice(0,10))+'.csv');
 }
 
 // ── INIT ──────────────────────────────────────────────────
