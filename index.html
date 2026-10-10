@@ -78,6 +78,10 @@ input,select,textarea{background:var(--sur);border:1.5px solid var(--brd);color:
 input:focus,select:focus,textarea:focus{border-color:var(--gld);}
 textarea{min-height:80px;resize:vertical;}
 .gr2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+/* Stimmgruppen-Auswahl Sperrtage */
+.stg-row{display:flex;gap:6px;flex-wrap:wrap;}
+.stg{flex:1;min-width:58px;min-height:44px;border:1.5px solid var(--brd);background:var(--sur);color:var(--txm);font-family:inherit;font-size:14px;border-radius:3px;cursor:pointer;padding:0 6px;}
+.stg.on{border-color:var(--gld);background:var(--gldd);color:var(--gld);font-weight:600;}
 .mg{display:flex;flex-direction:column;}
 .vgh{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txd);padding:18px 4px 7px;border-bottom:2px solid var(--brd);}
 .mc{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--sur);border-bottom:1px solid var(--brd);}
@@ -151,7 +155,7 @@ textarea{min-height:80px;resize:vertical;}
 <header>
   <div>
     <h1>Indi-Verwaltung &middot; RIAS Kammerchor</h1>
-    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.5</div>
+    <div style="font-size:10px;opacity:.6;letter-spacing:.12em;margin-top:2px">Version 1.6</div>
   </div>
   <span id="yr" style="font-size:24px;font-weight:300;opacity:.8"></span>
 </header>
@@ -239,8 +243,8 @@ textarea{min-height:80px;resize:vertical;}
 </div>
 
 <div class="panel" id="p-spe">
-  <div class="ph"><h2>Sperrtage</h2><button class="btn btn-p" onclick="om('m-spe')">+ Termin eintragen</button></div>
-  <p style="color:var(--txm);font-size:12px;margin-bottom:16px">Konzerte und Generalproben ohne Indi-Möglichkeit.</p>
+  <div class="ph"><h2>Sperrtage</h2><button class="btn btn-p" onclick="openSpeModal()">+ Termin eintragen</button></div>
+  <p style="color:var(--txm);font-size:12px;margin-bottom:16px">Konzerte und Generalproben ohne Indi-Möglichkeit &ndash; für den ganzen Chor oder einzelne Stimmgruppen.</p>
   <div id="spe-list"></div>
   <div class="es" id="e-spe" style="display:none">Keine Sperrtage</div>
 </div>
@@ -328,6 +332,15 @@ textarea{min-height:80px;resize:vertical;}
       <option value="erste">Erster Dienst</option>
       <option value="zweite">Zweiter Dienst</option>
     </select></div>
+  </div>
+  <div class="fg"><label>Gilt für</label>
+    <div class="stg-row" id="s-stg">
+      <button type="button" class="stg on" data-v="" onclick="togStg(this)">Alle</button>
+      <button type="button" class="stg" data-v="S" onclick="togStg(this)">Sopran</button>
+      <button type="button" class="stg" data-v="A" onclick="togStg(this)">Alt</button>
+      <button type="button" class="stg" data-v="T" onclick="togStg(this)">Tenor</button>
+      <button type="button" class="stg" data-v="B" onclick="togStg(this)">Bass</button>
+    </div>
   </div>
   <div class="fg"><label>Beschreibung</label><input type="text" id="s-bes"></div>
   <div class="mf">
@@ -519,6 +532,58 @@ function cnt(mid) {
 }
 function mById(id) { return D.m.find(function(x){return x.id===id;})||null; }
 function mNm(id)   { var m=mById(id); return m?m.vorname+' '+m.nachname:'-'; }
+
+// === SPERRTAGE JE STIMMGRUPPE ===
+// Spalte sperrdaten.stimmen: leer/NULL = gilt für alle, sonst z.B. 'T' oder 'S,A'
+var SP_VO = ['S','A','T','B'];
+var SP_VN = {S:'Sopran',A:'Alt',T:'Tenor',B:'Bass'};
+function spStimmen(s) {
+  if (!s || !s.stimmen) return [];
+  return String(s.stimmen).split(',').map(function(x){return x.trim();}).filter(Boolean);
+}
+function spGilt(s, stimme) {
+  var st = spStimmen(s);
+  return !st.length || st.indexOf(stimme) >= 0;
+}
+function spUeberlapp(a, b) {
+  var x = spStimmen(a), y = spStimmen(b);
+  if (!x.length || !y.length) return true;
+  return x.some(function(v){ return y.indexOf(v) >= 0; });
+}
+function spLabel(s) {
+  var st = spStimmen(s);
+  if (!st.length) return '';
+  var n = st.map(function(v){ return SP_VN[v]||v; });
+  return st.length===1 ? 'nur '+n[0] : n.join(', ');
+}
+function togStg(btn) {
+  var row = document.getElementById('s-stg');
+  var alle = row.querySelector('[data-v=""]');
+  var einz = row.querySelectorAll('.stg:not([data-v=""])');
+  if (btn.dataset.v === '') {
+    einz.forEach(function(b){ b.classList.remove('on'); });
+    alle.classList.add('on');
+    return;
+  }
+  btn.classList.toggle('on');
+  var anz = row.querySelectorAll('.stg.on:not([data-v=""])').length;
+  if (anz === 0 || anz === SP_VO.length) {
+    einz.forEach(function(b){ b.classList.remove('on'); });
+    alle.classList.add('on');
+  } else {
+    alle.classList.remove('on');
+  }
+}
+function getStg() {
+  var on = [];
+  document.querySelectorAll('#s-stg .stg.on').forEach(function(b){ if (b.dataset.v) on.push(b.dataset.v); });
+  on.sort(function(a,b){ return SP_VO.indexOf(a)-SP_VO.indexOf(b); });
+  return on.length ? on.join(',') : null;
+}
+function openSpeModal() {
+  togStg(document.querySelector('#s-stg [data-v=""]'));
+  om('m-spe');
+}
 
 // === NAVIGATION ===
 function go(id) {
@@ -780,9 +845,11 @@ function rSpe() {
   if (!sl.length){el.innerHTML='';em.style.display='block';return;}
   em.style.display='none';
   el.innerHTML=sl.map(function(s){
+    var stl=spLabel(s);
     return '<div class="si"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
       '<span class="badge br2">'+s.typ+'</span>'+
       (s.umfang&&s.umfang!=='ganz'?'<span class="badge bt" style="font-size:10px;margin-left:4px">'+(s.umfang==='erste'?'1. Dienst':'2. Dienst')+'</span>':'')+
+      (stl?'<span class="badge bp" style="font-size:10px">'+stl+'</span>':'')+
       '<span style="font-size:16px">'+fd(s.datum)+'</span>'+
       '<span style="font-size:12px;color:var(--txm)">'+(s.beschreibung||'')+'</span>'+
       '</div><button class="ab ad" onclick="delSpe(\''+s.id+'\')">x</button></div>';
@@ -827,8 +894,9 @@ function rKom() {
   dates.sort();
 
   var rows = '';
+  // Mehrere Sperrtage pro Datum möglich (z.B. je Stimmgruppe)
   var sm = {};
-  D.s.forEach(function(s){ sm[s.datum]=s; });
+  D.s.forEach(function(s){ (sm[s.datum]=sm[s.datum]||[]).push(s); });
 
   dates.forEach(function(dat){
     // Datumszeile
@@ -836,10 +904,13 @@ function rKom() {
     var dObj = new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
     var wtag = wt2[dObj.getDay()];
     var istHeute = dat===t;
-    var sperr = sm[dat];
+    var sperren = sm[dat]||[];
     var datLabel = '<span style="font-weight:500;letter-spacing:.03em">'+wtag+', '+dp[2]+'.'+dp[1]+'.'+dp[0]+'</span>';
     if (istHeute) datLabel += ' <span style="font-size:10px;color:var(--gld);font-weight:700;margin-left:6px">HEUTE</span>';
-    if (sperr) datLabel += ' <span style="font-size:10px;color:var(--red);margin-left:6px">&#128721; '+sperr.typ+(sperr.beschreibung?' &ndash; '+sperr.beschreibung:'')+'</span>';
+    sperren.forEach(function(sperr){
+      var stl = spLabel(sperr);
+      datLabel += ' <span style="font-size:10px;color:var(--red);margin-left:6px">&#128721; '+sperr.typ+(sperr.beschreibung?' &ndash; '+sperr.beschreibung:'')+(stl?' ('+stl+')':'')+'</span>';
+    });
     rows += '<tr style="background:var(--sur2)"><td colspan="4" style="padding:10px 14px;font-size:13px;color:var(--gld);letter-spacing:.04em">'+datLabel+'</td></tr>';
 
     // Mitglieder des Tages, sortiert nach Stimmgruppe
@@ -959,9 +1030,12 @@ async function subAnt(force) {
   var bem=document.getElementById('a-bem').value.trim();
   if(!mid||!dat){toast('Mitglied und Datum benötigt','er');return;}
 
-  var sp=D.s.find(function(s){return s.datum===dat&&(s.umfang==='ganz'||!s.umfang||umf==='ganz'||s.umfang===umf);});
+  // Sperrtag nur, wenn er für die Stimmgruppe des Mitglieds gilt
+  var mSp=mById(mid), stSp=mSp?mSp.stimme:'';
+  var sp=D.s.find(function(s){return s.datum===dat&&spGilt(s,stSp)&&(s.umfang==='ganz'||!s.umfang||umf==='ganz'||s.umfang===umf);});
   if(sp&&force!=='sperr'&&force!==true){
-    document.getElementById('wsp-t').textContent=fd(dat)+' ist gesperrt: '+sp.typ+(sp.beschreibung?' - '+sp.beschreibung:'');
+    var spl=spLabel(sp);
+    document.getElementById('wsp-t').textContent=fd(dat)+' ist gesperrt: '+sp.typ+(sp.beschreibung?' - '+sp.beschreibung:'')+(spl?' ('+spl+')':'');
     _pend={mid:mid,dat:dat,umf:umf,bem:bem};cm('m-ant');om('m-wsp');return;
   }
   var w=(umf==='erste'||umf==='zweite')?0.5:(umf==='sammlung'?parseFloat(document.getElementById('a-anz').value)||2:1);
@@ -1051,16 +1125,18 @@ async function subSpe() {
   var typ=document.getElementById('s-typ').value;
   var umf=document.getElementById('s-umf').value;
   var bes=document.getElementById('s-bes').value.trim();
+  var stm=getStg();   // null = alle Stimmgruppen
   if(!dat){toast('Datum benötigt','er');return;}
-  // Prüfe nur wenn gleicher Umfang oder ganz
-  if(D.s.find(function(s){return s.datum===dat&&(s.umfang===umf||s.umfang==='ganz'||umf==='ganz');})){
+  // Prüfe nur wenn gleicher Umfang oder ganz UND sich die Stimmgruppen überschneiden
+  if(D.s.find(function(s){return s.datum===dat&&(s.umfang===umf||s.umfang==='ganz'||umf==='ganz')&&spUeberlapp(s,{stimmen:stm});})){
     toast('Dieser Umfang für dieses Datum ist bereits gesperrt','er');return;
   }
   var id=uid();
-  var {error}=await sb.from('sperrdaten').insert({id:id,datum:dat,typ:typ,umfang:umf,beschreibung:bes});
+  var {error}=await sb.from('sperrdaten').insert({id:id,datum:dat,typ:typ,umfang:umf,beschreibung:bes,stimmen:stm});
   if(error){toast('Fehler: '+error.message,'er');return;}
-  D.s.push({id:id,datum:dat,typ:typ,umfang:umf,beschreibung:bes});
-  logP('Sperrtag eingetragen', dat+' ('+typ+', '+(umf==='ganz'?'Ganzer Tag':umf==='erste'?'1. Dienst':'2. Dienst')+(bes?' - '+bes:'')+')');
+  var neu={id:id,datum:dat,typ:typ,umfang:umf,beschreibung:bes,stimmen:stm};
+  D.s.push(neu);
+  logP('Sperrtag eingetragen', dat+' ('+typ+', '+(umf==='ganz'?'Ganzer Tag':umf==='erste'?'1. Dienst':'2. Dienst')+', '+(spLabel(neu)||'alle Stimmgruppen')+(bes?' - '+bes:'')+')');
   render();cm('m-spe');toast('Eingetragen','ok');
 }
 
