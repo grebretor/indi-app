@@ -381,6 +381,7 @@ textarea{min-height:80px;resize:vertical;}
     <input type="number" id="e-anz" value="2" min="1" max="10" step="0.5">
   </div>
   <div class="fg"><label>Bemerkung</label><textarea id="e-bem" rows="2"></textarea></div>
+  <div class="fg" id="e-abl-row" style="display:none"><label>Begründung der Ablehnung</label><textarea id="e-abl" rows="2"></textarea></div>
   <div class="mf">
     <button class="btn btn-r" onclick="editDel()">Löschen</button>
     <button class="btn btn-g" onclick="cm('m-edit')">Abbrechen</button>
@@ -1192,6 +1193,8 @@ function openEdit(id) {
   document.getElementById('e-anz').value = a.anzahl||2;
   document.getElementById('e-anz-row').style.display = a.umfang==='sammlung'?'block':'none';
   document.getElementById('e-bem').value = a.bemerkung||'';
+  document.getElementById('e-abl').value = a.ablehnungsgrund||'';
+  document.getElementById('e-abl-row').style.display = a.status==='abgelehnt' ? 'flex' : 'none';
   om('m-edit');
 }
 
@@ -1204,10 +1207,14 @@ async function subEdit() {
   if (!dat) { toast('Datum benötigt','er'); return; }
   var upd = {datum:dat, umfang:umf, bemerkung:bem};
   if (umf==='sammlung') upd.anzahl=anz; else upd.anzahl=null;
+  var abl = document.getElementById('e-abl').value.trim();
+  var aOld = D.a.find(function(x){return x.id===id;});
+  var istAbgelehnt = aOld && aOld.status==='abgelehnt';
+  if (istAbgelehnt) upd.ablehnungsgrund = abl;
   var {error} = await sb.from('antraege').update(upd).eq('id',id);
   if (error) { toast('Fehler: '+error.message,'er'); return; }
   var a = D.a.find(function(x){return x.id===id;});
-  if (a) { a.datum=dat; a.umfang=umf; a.bemerkung=bem; a.anzahl=umf==='sammlung'?anz:null; }
+  if (a) { a.datum=dat; a.umfang=umf; a.bemerkung=bem; a.anzahl=umf==='sammlung'?anz:null; if (istAbgelehnt) a.ablehnungsgrund=abl; }
   var m = a?mById(a.mid):null;
   logP('Antrag bearbeitet', (m?m.vorname+' '+m.nachname:'?')+': '+dat+' ('+umf+')');
   render(); cm('m-edit'); toast('Gespeichert','ok');
