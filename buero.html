@@ -275,7 +275,7 @@ function zeile(a, showDate, tagCount) {
     '<td><span class="badge '+(VSB[stimme]||'bt')+'">'+(VN[stimme]||stimme)+'</span></td>'+
     '<td style="color:var(--txm);font-size:12px">'+umfStr(a)+'</td>'+
     '<td>'+(SBL[a.status]||a.status)+'</td>'+
-    '<td style="font-size:12px;color:var(--txm)">'+(a.bemerkung||'–')+'</td>'+
+    '<td style="font-size:12px;color:var(--txm)">'+(a.status==='abgelehnt'&&a.ablehnungsgrund?'<span style="color:var(--red)">&#9940; '+a.ablehnungsgrund+'</span>':(a.bemerkung||'–'))+'</td>'+
     '</tr>';
 }
 
@@ -612,7 +612,7 @@ function csvEx() {
     var dp=a.datum.split('-');
     var dO=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
     return [m?m.nachname+', '+m.vorname:'?', m?VN[m.stimme]||m.stimme:'',
-      fd(a.datum), WT[dO.getDay()], umfStr(a), a.status, a.bemerkung||'']
+      fd(a.datum), WT[dO.getDay()], umfStr(a), a.status, (a.status==='abgelehnt'&&a.ablehnungsgrund)?a.ablehnungsgrund:(a.bemerkung||'')]
       .map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(';');
   });
   var bom=String.fromCharCode(0xFEFF);
